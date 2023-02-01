@@ -1,4 +1,6 @@
 
+import 'dart:async';
+
 import 'package:bluetoothtranslate/permission_controller.dart';
 import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
@@ -167,14 +169,16 @@ class _MainScreenState extends State<MainScreen> {
               _speech.startListening();
             }
           }
-          setState(() {
-          });
 
           if(!isOn)
           {
             _lastTranslatedStr = await _translateTextWithCurrentLanguage(inputTextEditController.text);
-            print(_lastTranslatedStr);
+            print("_lastTranslatedStr : $_lastTranslatedStr");
           }
+
+          setState(() {
+          });
+
         },
       );
   }
@@ -188,31 +192,41 @@ class _MainScreenState extends State<MainScreen> {
   onChangedSourceDropdownMenuItem(String? value) async {
     currentSourceLanguageItem = findLanguageItemByLanguageCode(value!);
   }
-
   onChangedTargetDropdownMenuItem(String? value) async {
-    currentTargetLanguageItem = findLanguageItemByLanguageCode(value!);
-    TranslateLanguage? targetTranslateLanguage = currentTargetLanguageItem.translateLanguage;
-    if(targetTranslateLanguage == null)
-    {
-      throw('$targetTranslateLanguage is null');
-    }
-    final modelManager = OnDeviceTranslatorModelManager();
-    final bool isDownloaded = await modelManager.isModelDownloaded(targetTranslateLanguage!.bcpCode);
-    print("download response : $isDownloaded");
+
+    LanguageItem languageItem = findLanguageItemByLanguageCode(value!);
+
+    final bool isDownloaded = await languageItem.getModelDownloaded();
+    bool readyForTranslated = isDownloaded;
+    print("선택시 download 상태 : $isDownloaded");
 
     if (!isDownloaded) {
-      LanguageItem languageItem = findLanguageItemByTranslateLanguage(targetTranslateLanguage!);
-      bool? confirmed = await simpleConfirmDialog(context, "Do you want to download ${languageItem.menuDisplayStr} to your device?");
-      if (confirmed == true) {
-        await simpleLoadingDialog(context, "${languageItem.menuDisplayStr}을 다운로드 중입니다. 잠시 기다려주세요.");
-        await languageItem.downloadModel();
-        Navigator.of(context).pop();
-      } else if (confirmed == false)
+      simpleLoadingDialog(context, "${languageItem.menuDisplayStr}을 다운로드 중입니다. 잠시 기다려주세요.");
+      Object result = await languageItem.downloadModel(7);
+      if(result is TimeoutException)
       {
-        print("사용자가 다운로드 거부함");
+        print("TimeoutException");
+        readyForTranslated = false;
+      }
+      else{
+        bool isDownloadSuccess = (result as bool);
+        print(isDownloadSuccess == true ? "다운로드 성공!!" : "다운로드 실패!!");
+        readyForTranslated = isDownloadSuccess;
+      }
+      Navigator.of(context).pop();
+    }
+
+    if(readyForTranslated)
+    {
+      currentTargetLanguageItem = languageItem;
+      TranslateLanguage? targetTranslateLanguage = currentTargetLanguageItem.translateLanguage;
+      if(targetTranslateLanguage == null)
+      {
+        throw('$targetTranslateLanguage is null');
       }
     }
   }
+
 
 }
 

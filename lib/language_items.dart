@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:bluetoothtranslate/simple_gauge_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 
@@ -19,7 +22,8 @@ class LanguageItem {
     final bool response = await modelManager.isModelDownloaded(translateLanguage!.bcpCode);
     return response;
   }
-  Future<bool> downloadModel() async {
+
+  Future<Object> downloadModel(int timeoutSeconds) async {
     if (translateLanguage == null) {
       throw("해당 LanguageItem은 translateLanguage 이 없음");
     }
@@ -30,9 +34,15 @@ class LanguageItem {
     }
     print("$translateLanguage 다운로드 시작..!");
     final modelManager = OnDeviceTranslatorModelManager();
-    final bool response = await modelManager.downloadModel(translateLanguage!.bcpCode);
-    print("$translateLanguage 다운로드 완료 결과 : $response..!");
-    return response;
+    try {
+      final bool response = await modelManager.downloadModel(
+          translateLanguage!.bcpCode).timeout(
+          Duration(seconds: timeoutSeconds));
+      print("$translateLanguage 다운로드 완료 결과 : $response..!");
+      return response;
+    } catch (e) {
+      return TimeoutException("The download took too long.");
+    }
   }
 
 
