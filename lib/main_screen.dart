@@ -1,5 +1,7 @@
-import 'package:bluetoothtranslate/apiKey.dart';
+
 import 'package:bluetoothtranslate/permission_controller.dart';
+import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
+import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/speech.dart';
 import 'package:flutter/material.dart';
 import 'package:bluetoothtranslate/tranlsate_api.dart';
@@ -14,6 +16,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
 
+  TranslateApi translateApi = TranslateApi();
   final Speech _speech = Speech();
 
   String _lastTranslatedStr = '';
@@ -31,12 +34,14 @@ class _MainScreenState extends State<MainScreen> {
     for (var languageItem in languageItems) {
       _languageMenuItems.add(languageDropdownMenuItem(languageItem));
     }
+    translateApi.initializeTranslateApi(currentSourceLanguageItem.translateLanguage!, currentTargetLanguageItem.translateLanguage!);
   }
   @override
   void dispose() {
     // TODO: implement dispose
     inputTextEditController.dispose();
     outputTextEditController.dispose();
+    translateApi.disposeTranslateApi();
     super.dispose();
   }
 
@@ -66,9 +71,9 @@ class _MainScreenState extends State<MainScreen> {
                     child: DropdownButton(
                       items: _languageMenuItems,
                       value: currentSourceLanguageItem.languageCode,
-                      onChanged: (value) {
+                      onChanged: (value) async{
+                        await onChangedSourceDropdownMenuItem(value);
                         setState(() {
-                          currentSourceLanguageItem = findLanguageItemByLanguageCode(value!);
                         });
                       },
                     ),
@@ -80,9 +85,9 @@ class _MainScreenState extends State<MainScreen> {
                     child: DropdownButton(
                       items: _languageMenuItems,
                       value: currentTargetLanguageItem.languageCode,
-                      onChanged: (value) {
+                      onChanged: (value) async{
+                        await onChangedTargetDropdownMenuItem(value);
                         setState(() {
-                          currentTargetLanguageItem = findLanguageItemByLanguageCode(value!);
                         });
                       },
                     ),
@@ -148,47 +153,80 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
         onPressed: () async{
+          bool isOn = false;
           bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
           if (!hasPermission) {
              PermissionController.showNoPermissionSnackBar(context);
           }
           else {
             if (_speech.isListening) {
+              isOn = false;
               _speech.stopListening();
-              _lastTranslatedStr = await _translateTextWithCurrentLanguage(inputTextEditController.text);
-              print(_lastTranslatedStr);
             } else {
+              isOn = true;
               _speech.startListening();
             }
           }
           setState(() {
           });
+
+          if(!isOn)
+          {
+            _lastTranslatedStr = await _translateTextWithCurrentLanguage(inputTextEditController.text);
+            print(_lastTranslatedStr);
+          }
         },
       );
   }
-  //
-  // ElevatedButton _translateBtn() {
-  //   return ElevatedButton(
-  //             child: Text('Translate'),
-  //             onPressed: () async {
-  //               String textToTranslate = inputTextEditController.text;
-  //               String translatedText = await _translateTextWithCurrentLanguage(textToTranslate);
-  //               setState(() {
-  //                 _translatedText = translatedText;
-  //               });
-  //             },
-  //           );
-  // }
-
   Future<String> _translateTextWithCurrentLanguage(String inputText) async
   {
-    final translateApi = TranslateApi(
-        sourceTranslateLanguage: currentSourceLanguageItem!.translateLanguage!,
-        targetTranslateLanguage: currentTargetLanguageItem!.translateLanguage!
-    );
+    translateApi.changeTranslateApiLanguage(currentSourceLanguageItem.translateLanguage, currentTargetLanguageItem.translateLanguage);
     final translatedText = await translateApi.translate(inputText);
     return translatedText;
   }
 
+  onChangedSourceDropdownMenuItem(String? value) async {
+    currentSourceLanguageItem = findLanguageItemByLanguageCode(value!);
+  }
+
+  onChangedTargetDropdownMenuItem(String? value) async {
+    currentTargetLanguageItem = findLanguageItemByLanguageCode(value!);
+    TranslateLanguage? targetTranslateLanguage = currentTargetLanguageItem.translateLanguage;
+    if(targetTranslateLanguage == null)
+    {
+      throw('$targetTranslateLanguage is null');
+    }
+    final modelManager = OnDeviceTranslatorModelManager();
+    final bool isDownloaded = await modelManager.isModelDownloaded(targetTranslateLanguage!.bcpCode);
+    print("download response : $isDownloaded");
+
+    if (!isDownloaded) {
+      LanguageItem languageItem = findLanguageItemByTranslateLanguage(targetTranslateLanguage!);
+      bool? confirmed = await simpleConfirmDialog(context, "Do you want to download ${languageItem.menuDisplayStr} to your device?");
+      if (confirmed == true) {
+        await simpleLoadingDialog(context, "${languageItem.menuDisplayStr}을 다운로드 중입니다. 잠시 기다려주세요.");
+        await languageItem.downloadModel();
+        Navigator.of(context).pop();
+      } else if (confirmed == false)
+      {
+        print("사용자가 다운로드 거부함");
+      }
+    }
+  }
+
 }
 
+
+//
+// ElevatedButton _translateBtn() {
+//   return ElevatedButton(
+//             child: Text('Translate'),
+//             onPressed: () async {
+//               String textToTranslate = inputTextEditController.text;
+//               String translatedText = await _translateTextWithCurrentLanguage(textToTranslate);
+//               setState(() {
+//                 _translatedText = translatedText;
+//               });
+//             },
+//           );
+// }

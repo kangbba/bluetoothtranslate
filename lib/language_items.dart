@@ -19,23 +19,22 @@ class LanguageItem {
     final bool response = await modelManager.isModelDownloaded(translateLanguage!.bcpCode);
     return response;
   }
-
-  Future<bool> downloadModel() async
-  {
-    if(translateLanguage == null)
-    {
+  Future<bool> downloadModel() async {
+    if (translateLanguage == null) {
       throw("해당 LanguageItem은 translateLanguage 이 없음");
     }
     bool isAlreadyDownloaded = await getModelDownloaded();
-    if(isAlreadyDownloaded)
-    {
+    if (isAlreadyDownloaded) {
       print("이미 있는 Language Item 이므로 다운로드 할 수 없음");
       return false;
     }
+    print("$translateLanguage 다운로드 시작..!");
     final modelManager = OnDeviceTranslatorModelManager();
     final bool response = await modelManager.downloadModel(translateLanguage!.bcpCode);
+    print("$translateLanguage 다운로드 완료 결과 : $response..!");
     return response;
   }
+
 
   Future<bool> deleteModel() async
   {
@@ -49,12 +48,17 @@ class LanguageItem {
       print("이미 없는 Language Item 이므로 삭제할수 없음");
       return false;
     }
+    print("$translateLanguage 삭제 시작..!");
     final bool response = await modelManager.deleteModel(translateLanguage!.bcpCode);
+    print("$translateLanguage 삭제 완료 결과 : $response..!");
     return response;
   }
 }
 LanguageItem findLanguageItemByLanguageCode(String languageCode) {
-  return languageItems.firstWhere((item) => item.languageCode == languageCode, orElse: () => languageItems.last);
+  return languageItems.firstWhere((item) => item.languageCode == languageCode, orElse: () => LanguageItem());
+}
+LanguageItem findLanguageItemByTranslateLanguage(TranslateLanguage translateLanguage) {
+  return languageItems.firstWhere((item) => item.translateLanguage == translateLanguage, orElse: () => LanguageItem());
 }
 DropdownMenuItem<String> languageDropdownMenuItem(LanguageItem languageItem) {
   return DropdownMenuItem(

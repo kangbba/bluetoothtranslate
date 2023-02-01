@@ -1,13 +1,35 @@
+import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
+import 'package:bluetoothtranslate/simple_loading_dialog.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 
+import 'language_items.dart';
+
 class TranslateApi {
-  final TranslateLanguage sourceTranslateLanguage;
-  final TranslateLanguage targetTranslateLanguage;
-  final OnDeviceTranslator _onDeviceTranslator;
+  late TranslateLanguage _sourceTranslateLanguage;
+  late TranslateLanguage _targetTranslateLanguage;
+  late OnDeviceTranslator _onDeviceTranslator;
 
-  TranslateApi({required this.sourceTranslateLanguage, required this.targetTranslateLanguage})
-      : _onDeviceTranslator = OnDeviceTranslator(sourceLanguage: sourceTranslateLanguage, targetLanguage: targetTranslateLanguage);
+  initializeTranslateApi(TranslateLanguage sourceTranslateLanguage, TranslateLanguage targetTranslateLanguage)
+  {
+    changeTranslateApiLanguage(sourceTranslateLanguage,targetTranslateLanguage);
+  }
 
+  changeTranslateApiLanguage(TranslateLanguage? sourceTranslateLanguage, TranslateLanguage? targetTranslateLanguage)
+  {
+    if(sourceTranslateLanguage == null || targetTranslateLanguage == null)
+    {
+      throw("sourceTranslateLanguage or targetTranslateLanguage NULL");
+    }
+    _sourceTranslateLanguage = sourceTranslateLanguage;
+    _targetTranslateLanguage = targetTranslateLanguage;
+    _onDeviceTranslator = OnDeviceTranslator(sourceLanguage: sourceTranslateLanguage, targetLanguage: targetTranslateLanguage);
+  }
+
+  disposeTranslateApi()
+  {
+    _onDeviceTranslator.close();
+  }
   Future<String> translate(String textToTranslate) async {
     final result = await _onDeviceTranslator.translateText(textToTranslate);
     if (result.isNotEmpty) {
@@ -16,4 +38,5 @@ class TranslateApi {
       return 'Failed to translate text';
     }
   }
+
 }
