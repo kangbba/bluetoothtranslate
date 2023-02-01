@@ -3,7 +3,6 @@ import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 class TranslateApi {
   final TranslateLanguage sourceTranslateLanguage;
   final TranslateLanguage targetTranslateLanguage;
-
   final OnDeviceTranslator _onDeviceTranslator;
 
   TranslateApi({required this.sourceTranslateLanguage, required this.targetTranslateLanguage})
