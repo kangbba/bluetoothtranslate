@@ -69,16 +69,12 @@ class LanguageDatas {
 
   // TODO: 기본함수
   void initializeLanguageDatas() {
-    makeDropdownMenuItems();
-  }
-
-    // TODO: 드랍다운 메뉴 아이템들 관리
-  List<DropdownMenuItem> makeDropdownMenuItems() {
     for (var languageItem in languageItems) {
       languageMenuItems.add(languageDropdownMenuItem(languageItem));
     }
-    return languageMenuItems;
   }
+
+    // TODO: 드랍다운 메뉴 아이템들 관리
   DropdownMenuItem<String> languageDropdownMenuItem(LanguageItem languageItem) {
     return DropdownMenuItem(
       value: languageItem.menuDisplayStr,

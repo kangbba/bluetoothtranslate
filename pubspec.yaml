@@ -34,6 +34,8 @@ dependencies:
   google_cloud_translation: ^0.0.3
 
   speech_to_text: ^6.1.1
+  text_to_speech: ^0.2.3
+
   flutter:
     sdk: flutter
 

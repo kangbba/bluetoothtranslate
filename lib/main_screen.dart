@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:bluetoothtranslate/permission_controller.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/simple_snackbar.dart';
+import 'package:bluetoothtranslate/sizes.dart';
 import 'package:bluetoothtranslate/speech.dart';
 import 'package:bluetoothtranslate/translage_by_papagoserver.dart';
 import 'package:bluetoothtranslate/translate_by_googleserver.dart';
@@ -69,6 +70,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    screenSize = MediaQuery.of(context).size;
     return MultiProvider(
       providers: [
         ListenableProvider<SpeechControl>(
@@ -101,9 +103,10 @@ class _MainScreenState extends State<MainScreen> {
               SizedBox(
                 height: 20.0,
               ),
-              _translateFieldInput(),
+              _translateFieldInput(screenSize.height/4),
               _separator(height : 1, top : 0, bottom: 0),
-              _translateFieldOutput(),
+              _translateFieldOutput(screenSize.height/4),
+              _separator(height : 1, top : 0, bottom: 0),
               SizedBox(
                 height: 20.0,
               ),
@@ -123,9 +126,9 @@ class _MainScreenState extends State<MainScreen> {
 
 
 
-  Widget _translateFieldInput() {
+  Widget _translateFieldInput(double height) {
     return SizedBox(
-      height: 300,
+      height: height,
       child: Consumer<SpeechControl>(
         builder: (context, speech, child) {
           inputTextEditController.text = speech.recongnizedText;
@@ -142,9 +145,9 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _translateFieldOutput() {
+  Widget _translateFieldOutput(double height) {
     return SizedBox(
-      height : 300,
+      height : height,
       child: Consumer<SpeechControl>(
         builder: (context, speech, child) {
           outputTextEditController.text = _lastTranslatedStr;
