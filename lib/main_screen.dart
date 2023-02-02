@@ -164,50 +164,50 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  ElevatedButton _audioRecordBtn(BuildContext context) {
-    return ElevatedButton(
-      child: AnimatedSwitcher(
-        duration: Duration(milliseconds: 300),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeOut,
-        transitionBuilder: (child, animation) => ScaleTransition(
-          scale: animation,
-          child: child,
-        ),
-        child: Icon(
-          speechControl.isListening ? Icons.stop : Icons.mic,
-          key: ValueKey(speechControl.isListening),
-        ),
-      ),
-      onPressed: () async{
-        bool isOn = false;
-        bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
-        if (!hasPermission) {
-          PermissionController.showNoPermissionSnackBar(context);
-        }
-        else {
-          if (speechControl.isListening) {
-            isOn = false;
-            speechControl.stopListening();
-          } else {
-            isOn = true;
-            speechControl.startListening();
-          }
-        }
-
-        if(!isOn)
-        {
-          bool isContainChina = (currentSourceLanguageItem.translateLanguage == TranslateLanguage.chinese) || (currentTargetLanguageItem.translateLanguage == TranslateLanguage.chinese);
-          TranslateTool TranslateToolToUse = isContainChina ? TranslateTool.papagoServer : TranslateTool.googleServer;
-          _lastTranslatedStr = await _translateTextWithCurrentLanguage(inputTextEditController.text, TranslateToolToUse);
-          print("_lastTranslatedStr : $_lastTranslatedStr");
-        }
-
-        setState(() {
-        });
-
+  Consumer<SpeechControl> _audioRecordBtn(BuildContext context) {
+    return Consumer<SpeechControl>(
+      builder: (context, speechControl, child) {
+        return ElevatedButton(
+          child: AnimatedSwitcher(
+            duration: Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeOut,
+            transitionBuilder: (child, animation) => ScaleTransition(
+              scale: animation,
+              child: child,
+            ),
+            child: Icon(
+              speechControl.isListening ? Icons.stop : Icons.mic,
+            ),
+          ),
+          onPressed: () async{
+            bool isOn = false;
+            bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
+            if (!hasPermission) {
+              PermissionController.showNoPermissionSnackBar(context);
+            }
+            else {
+              if (speechControl.isListening) {
+                isOn = false;
+                await speechControl.stopListening();
+              } else {
+                isOn = true;
+                await speechControl.startListening();
+                await whenSpeechEnd();
+              }
+              setState(() {});
+            }
+          },
+        );
       },
     );
+  }
+  whenSpeechEnd() async
+  {
+    bool isContainChina = (currentSourceLanguageItem.translateLanguage == TranslateLanguage.chinese) || (currentTargetLanguageItem.translateLanguage == TranslateLanguage.chinese);
+    TranslateTool TranslateToolToUse = isContainChina ? TranslateTool.papagoServer : TranslateTool.googleServer;
+    _lastTranslatedStr = await _translateTextWithCurrentLanguage(inputTextEditController.text, TranslateToolToUse);
+    print("_lastTranslatedStr : $_lastTranslatedStr");
   }
   Future<String> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
   {
@@ -235,7 +235,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   onSelectedSourceDropdownMenuItem(LanguageItem languageItem) {
-
     speechControl.changeCurrentLocal(languageItem.speechLocaleId!);
     setState(() {
       currentSourceLanguageItem = languageItem;

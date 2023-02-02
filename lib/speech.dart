@@ -14,21 +14,33 @@ class SpeechControl extends ChangeNotifier{
     _speechToText.initialize();
     changeCurrentLocal(languageItem.speechLocaleId!);
   }
-  startListening() {
+  startListening() async{
     print("startListening");
     _isListening = true;
-    _speechToText.listen(localeId: currentLocaleId, onResult: (result) {
-      _recongnizedText = result.recognizedWords;
-      notifyListeners();
-      print("SpeechToText Result : $result");
-    });
+    notifyListeners();
+    await _speechToText.listen(
+        localeId: currentLocaleId,
+        onResult: (result) async {
+          _recongnizedText = result.recognizedWords;
+          print("SpeechToText Result : $result");
+
+          if(result.finalResult)
+          {
+            await stopListening();
+          }
+          else{
+            print("듣는중");
+          }
+          notifyListeners();
+        }
+      );
   }
 
-  stopListening() {
+  stopListening() async{
     print("endListening");
     _isListening = false;
-    _speechToText.stop();
     notifyListeners();
+    await _speechToText.stop();
   }
 
   String get recongnizedText => _recongnizedText;
