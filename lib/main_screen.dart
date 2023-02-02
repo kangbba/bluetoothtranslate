@@ -5,11 +5,22 @@ import 'package:bluetoothtranslate/permission_controller.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/simple_snackbar.dart';
 import 'package:bluetoothtranslate/speech.dart';
+import 'package:bluetoothtranslate/translage_by_papagoserver.dart';
+import 'package:bluetoothtranslate/translate_by_googleserver.dart';
 import 'package:flutter/material.dart';
-import 'package:bluetoothtranslate/tranlsate_api.dart';
+import 'package:bluetoothtranslate/translate_by_googledevice.dart';
+import 'package:google_cloud_translation/google_cloud_translation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:provider/provider.dart';
 
+import 'language_datas.dart';
+
+enum TranslateTool
+{
+  googleServer,
+  papagoServer,
+  googleDevice,
+}
 class MainScreen extends StatefulWidget {
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -17,24 +28,34 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
 
-  TranslateApi translateApi = TranslateApi();
-  final Speech _speech = Speech();
+  LanguageDatas languageDatas = LanguageDatas();
+  TranslateByGoogleServer translateByGoogleServer = TranslateByGoogleServer();
+  TranslateByGoogleDevice translateByGoogleDevice = TranslateByGoogleDevice();
+  TranslateByPapagoServer translateByPapagoServer = TranslateByPapagoServer();
+  final SpeechControl speechControl = SpeechControl();
 
   String _lastTranslatedStr = '';
   TextEditingController inputTextEditController = TextEditingController();
   TextEditingController outputTextEditController = TextEditingController();
 
-  LanguageItem currentSourceLanguageItem = languageItems[0];
-  LanguageItem currentTargetLanguageItem = languageItems[2];
+
+  late LanguageItem currentSourceLanguageItem;
+  late LanguageItem currentTargetLanguageItem;
 
   @override
   void initState() {
     super.initState();
-    _speech.initSpeechToText();
-    translateApi.initializeTranslateApi(currentSourceLanguageItem.translateLanguage!, currentTargetLanguageItem.translateLanguage!);
+    languageDatas.initializeLanguageDatas();
 
+    currentSourceLanguageItem = languageDatas.languageItems[0];
+    currentTargetLanguageItem = languageDatas.languageItems[2];
     onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
     onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
+
+    speechControl.initSpeechToText(currentSourceLanguageItem);
+    translateByGoogleDevice.initializeTranslateByGoogleDevice();
+    translateByGoogleServer.initializeTranslateByGoogleServer();
+    translateByPapagoServer.initializeTranslateByPapagoServer();
 
   }
   @override
@@ -42,7 +63,7 @@ class _MainScreenState extends State<MainScreen> {
     // TODO: implement dispose
     inputTextEditController.dispose();
     outputTextEditController.dispose();
-    translateApi.disposeTranslateApi();
+    translateByGoogleDevice.disposeTranslateApi();
     super.dispose();
   }
 
@@ -50,8 +71,8 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ListenableProvider<Speech>(
-          create: (_) => _speech,
+        ListenableProvider<SpeechControl>(
+          create: (_) => speechControl,
         ),
       ],
       child: Scaffold(
@@ -105,7 +126,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget _translateFieldInput() {
     return SizedBox(
       height: 300,
-      child: Consumer<Speech>(
+      child: Consumer<SpeechControl>(
         builder: (context, speech, child) {
           inputTextEditController.text = speech.recongnizedText;
           return TextField(
@@ -113,7 +134,7 @@ class _MainScreenState extends State<MainScreen> {
             controller: inputTextEditController,
             decoration: InputDecoration(
               border : InputBorder.none,
-              hintText: _speech.isListening? "녹음중입니다" : "",
+              hintText: speechControl.isListening? "녹음중입니다" : "",
             ),
           );
         },
@@ -124,7 +145,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget _translateFieldOutput() {
     return SizedBox(
       height : 300,
-      child: Consumer<Speech>(
+      child: Consumer<SpeechControl>(
         builder: (context, speech, child) {
           outputTextEditController.text = _lastTranslatedStr;
           return TextField(
@@ -132,7 +153,7 @@ class _MainScreenState extends State<MainScreen> {
             controller: outputTextEditController,
             decoration: InputDecoration(
               border : InputBorder.none,
-              hintText: _speech.isListening? "녹음중입니다" : "",
+              hintText: speechControl.isListening? "녹음중입니다" : "",
             ),
           );
         },
@@ -151,8 +172,8 @@ class _MainScreenState extends State<MainScreen> {
           child: child,
         ),
         child: Icon(
-          _speech.isListening ? Icons.stop : Icons.mic,
-          key: ValueKey(_speech.isListening),
+          speechControl.isListening ? Icons.stop : Icons.mic,
+          key: ValueKey(speechControl.isListening),
         ),
       ),
       onPressed: () async{
@@ -162,18 +183,20 @@ class _MainScreenState extends State<MainScreen> {
           PermissionController.showNoPermissionSnackBar(context);
         }
         else {
-          if (_speech.isListening) {
+          if (speechControl.isListening) {
             isOn = false;
-            _speech.stopListening();
+            speechControl.stopListening();
           } else {
             isOn = true;
-            _speech.startListening();
+            speechControl.startListening();
           }
         }
 
         if(!isOn)
         {
-          _lastTranslatedStr = await _translateTextWithCurrentLanguage(inputTextEditController.text);
+          bool isContainChina = (currentSourceLanguageItem.translateLanguage == TranslateLanguage.chinese) || (currentTargetLanguageItem.translateLanguage == TranslateLanguage.chinese);
+          TranslateTool TranslateToolToUse = isContainChina ? TranslateTool.papagoServer : TranslateTool.googleServer;
+          _lastTranslatedStr = await _translateTextWithCurrentLanguage(inputTextEditController.text, TranslateToolToUse);
           print("_lastTranslatedStr : $_lastTranslatedStr");
         }
 
@@ -183,67 +206,57 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
   }
-  Future<String> _translateTextWithCurrentLanguage(String inputText) async
+  Future<String> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
   {
-    translateApi.changeTranslateApiLanguage(currentSourceLanguageItem.translateLanguage, currentTargetLanguageItem.translateLanguage);
-    final translatedText = await translateApi.translate(inputText);
-    return translatedText;
+    print("translateTool $translateTool 를 이용해 번역 시도합니다.");
+    String finalStr = "";
+    switch(translateTool)
+    {
+      case TranslateTool.googleDevice:
+        translateByGoogleDevice.changeTranslateApiLanguage(currentSourceLanguageItem.translateLanguage, currentTargetLanguageItem.translateLanguage);
+        final translatedText = await translateByGoogleDevice.textTranslate(inputStr);
+        finalStr = translatedText;
+        break;
+      case TranslateTool.papagoServer:
+        final translatedText = await  translateByPapagoServer.textTranslate(inputStr, currentSourceLanguageItem.langCodeByPapagoServer!, currentTargetLanguageItem.langCodeByPapagoServer!);
+        finalStr = translatedText;
+        break;
+      case TranslateTool.googleServer:
+        String from =  currentSourceLanguageItem.langCodeByGoogleTranslateByServer!;
+        String to =  currentTargetLanguageItem.langCodeByGoogleTranslateByServer!;
+        TranslationModel translationModel = await translateByGoogleServer.getTranslationModel(inputStr, from, to);
+        finalStr = translationModel.translatedText;
+        break;
+    }
+    return finalStr;
   }
 
   onSelectedSourceDropdownMenuItem(LanguageItem languageItem) {
+
+    speechControl.changeCurrentLocal(languageItem.speechLocaleId!);
     setState(() {
       currentSourceLanguageItem = languageItem;
     });
   }
-  Future<bool> downloadLanguageIfNeeded(LanguageItem languageItem) async
-  {
-    TranslateLanguage translateLanguage = languageItem.translateLanguage!;
-    final bool isDownloaded = await translateApi.getLanguageDownloaded(translateLanguage);
-    bool readyForTranslated = isDownloaded;
-    print("선택시 download 상태 : $isDownloaded");
-
-    if (!isDownloaded) {
-      simpleLoadingDialog(
-          context, "${languageItem.menuDisplayStr}을 다운로드 중입니다. 잠시 기다려주세요.");
-      String resultStr = await translateApi.downloadLanguage(translateLanguage, 10);
-      switch(resultStr)
-      {
-        case "SUCCESS" :
-          readyForTranslated = true;
-          languageItem.isDownloaded = true;
-          showSimpleSnackBar(context, "다운로드 성공!!", 1);
-          break;
-        case "FAIL" :
-          readyForTranslated = false;
-          showSimpleSnackBar(context, "다운로드 실패!!", 1);
-          break;
-        case "ALREADY_EXIST" :
-          readyForTranslated = true;
-          showSimpleSnackBar(context, "이미 다운로드 됨", 1);
-          break;
-        default:
-          readyForTranslated = false;
-          print(resultStr);
-          break;
-      }
-      Navigator.of(context).pop();
-    }
-    return readyForTranslated;
-  }
   onSelectedTargetDropdownMenuItem(LanguageItem languageItem){
-
     setState(() {
       currentTargetLanguageItem = languageItem;
     });
   }
 
+//
+// LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+// bool readyForTranslate = await downloadLanguageIfNeeded(languageItem);
+// if(readyForTranslate) {
+//
+
   Expanded _dropdownMenuInput() {
     return Expanded(
       child: DropdownButton(
-        items: translateApi.languageMenuItems,
+        items: languageDatas.languageMenuItems,
         value: currentSourceLanguageItem.menuDisplayStr,
         onChanged: (value) async{
-          LanguageItem languageItem = translateApi.findLanguageItemByMenuDisplayStr(value!);
+          LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
           await onSelectedSourceDropdownMenuItem(languageItem);
           setState(() {
           });
@@ -260,14 +273,11 @@ class _MainScreenState extends State<MainScreen> {
   Expanded _dropdownMenuOutput() {
     return Expanded(
       child: DropdownButton(
-        items: translateApi.languageMenuItems,
+        items: languageDatas.languageMenuItems,
         value: currentTargetLanguageItem.menuDisplayStr,
         onChanged: (value) async{
-          LanguageItem languageItem = translateApi.findLanguageItemByMenuDisplayStr(value!);
-          bool readyForTranslate = await downloadLanguageIfNeeded(languageItem);
-          if(readyForTranslate) {
-            onSelectedTargetDropdownMenuItem(languageItem);
-          }
+          LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+          onSelectedTargetDropdownMenuItem(languageItem);
           setState(() {});
         },
         icon: Align(
