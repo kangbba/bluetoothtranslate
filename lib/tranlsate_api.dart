@@ -3,16 +3,7 @@ import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
-
-class LanguageItem {
-  final TranslateLanguage? translateLanguage;
-  final String? menuDisplayStr;
-  final String? arduinoUniqueId;
-  final String?  languageUniqueCode;
-  bool isDownloaded = false;
-
-  LanguageItem({this.translateLanguage, this.menuDisplayStr, this.arduinoUniqueId, this.languageUniqueCode});
-}
+import 'package:provider/provider.dart';
 
 List<LanguageItem> languageItems = [
   LanguageItem(translateLanguage: TranslateLanguage.korean, languageUniqueCode: 'ko', menuDisplayStr: 'Korean', arduinoUniqueId: null),
@@ -37,6 +28,17 @@ List<LanguageItem> languageItems = [
   LanguageItem(translateLanguage: TranslateLanguage.thai, languageUniqueCode: 'th', menuDisplayStr: 'Thai', arduinoUniqueId: null),
   LanguageItem(translateLanguage: TranslateLanguage.vietnamese, languageUniqueCode: 'vi', menuDisplayStr: 'Vietnamese', arduinoUniqueId: null),
 ];
+
+class LanguageItem{
+  final TranslateLanguage? translateLanguage;
+  final String? menuDisplayStr;
+  final String? arduinoUniqueId;
+  final String?  languageUniqueCode;
+  bool isDownloaded = false;
+
+  LanguageItem({this.translateLanguage, this.menuDisplayStr, this.arduinoUniqueId, this.languageUniqueCode});
+}
+
 
 class TranslateApi {
   late OnDeviceTranslator _onDeviceTranslator;
@@ -73,18 +75,31 @@ class TranslateApi {
     return languageMenuItems;
   }
   DropdownMenuItem<String> languageDropdownMenuItem(LanguageItem languageItem) {
-    bool isDownloaded = false;
-
     return DropdownMenuItem(
       value: languageItem.menuDisplayStr,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(languageItem.menuDisplayStr!),
-          SizedBox(width: 10),
-          if (!isDownloaded)
-            Icon(Icons.cloud_download),
-        ],
+      child: FutureBuilder(
+        future:  getLanguageDownloaded(languageItem.translateLanguage!),
+        builder: (BuildContext context, AsyncSnapshot snapshot) {
+          if (snapshot.hasData) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(languageItem.menuDisplayStr!),
+                SizedBox(width: 10),
+                Icon(snapshot.data ? Icons.check : Icons.cloud_download),
+              ],
+            );
+          } else {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(languageItem.menuDisplayStr!),
+                SizedBox(width: 10),
+                CircularProgressIndicator(),
+              ],
+            );
+          }
+        },
       ),
     );
   }

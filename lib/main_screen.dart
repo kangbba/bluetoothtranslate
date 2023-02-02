@@ -190,13 +190,13 @@ class _MainScreenState extends State<MainScreen> {
     return translatedText;
   }
 
-  onSelectedSourceDropdownMenuItem(LanguageItem languageItem) async {
+  onSelectedSourceDropdownMenuItem(LanguageItem languageItem) {
     setState(() {
       currentSourceLanguageItem = languageItem;
-      languageItem.isDownloaded = !languageItem.isDownloaded;
     });
   }
-  onSelectedTargetDropdownMenuItem(LanguageItem languageItem) async {
+  Future<bool> downloadLanguageIfNeeded(LanguageItem languageItem) async
+  {
     TranslateLanguage translateLanguage = languageItem.translateLanguage!;
     final bool isDownloaded = await translateApi.getLanguageDownloaded(translateLanguage);
     bool readyForTranslated = isDownloaded;
@@ -210,6 +210,7 @@ class _MainScreenState extends State<MainScreen> {
       {
         case "SUCCESS" :
           readyForTranslated = true;
+          languageItem.isDownloaded = true;
           showSimpleSnackBar(context, "다운로드 성공!!", 1);
           break;
         case "FAIL" :
@@ -227,10 +228,13 @@ class _MainScreenState extends State<MainScreen> {
       }
       Navigator.of(context).pop();
     }
-    if (readyForTranslated) {
+    return readyForTranslated;
+  }
+  onSelectedTargetDropdownMenuItem(LanguageItem languageItem){
+
+    setState(() {
       currentTargetLanguageItem = languageItem;
-    }
-    setState(() {});
+    });
   }
 
   Expanded _dropdownMenuInput() {
@@ -260,9 +264,11 @@ class _MainScreenState extends State<MainScreen> {
         value: currentTargetLanguageItem.menuDisplayStr,
         onChanged: (value) async{
           LanguageItem languageItem = translateApi.findLanguageItemByMenuDisplayStr(value!);
-          await onSelectedTargetDropdownMenuItem(languageItem);
-          setState(() {
-          });
+          bool readyForTranslate = await downloadLanguageIfNeeded(languageItem);
+          if(readyForTranslate) {
+            onSelectedTargetDropdownMenuItem(languageItem);
+          }
+          setState(() {});
         },
         icon: Align(
           alignment: Alignment.centerRight,
