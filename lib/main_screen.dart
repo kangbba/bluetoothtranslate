@@ -14,7 +14,6 @@ import 'package:bluetoothtranslate/translate_by_googledevice.dart';
 import 'package:google_cloud_translation/google_cloud_translation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:provider/provider.dart';
-import 'package:text_to_speech/text_to_speech.dart';
 
 import 'language_datas.dart';
 
@@ -90,7 +89,7 @@ class _MainScreenState extends State<MainScreen> {
       ],
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Translate'),
+          title: Align(alignment : Alignment.center, child: Text('Translate Demo')),
           backgroundColor: Colors.indigo,
         ),
         floatingActionButton:
@@ -166,13 +165,13 @@ class _MainScreenState extends State<MainScreen> {
     if (outputTextEditController.text.isNotEmpty) {
       return Positioned(
         bottom: 8,
-        right: 8,
+        left: 8,
         child: Container(
           height: 24,
           width: 24,
           child: ElevatedButton(
             onPressed: () {
-              textToSpeechControl.speak(outputTextEditController.text, _lastTranslatedLanguageItem);
+              textToSpeechControl.speak(outputTextEditController.text);
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.indigoAccent,
@@ -180,7 +179,7 @@ class _MainScreenState extends State<MainScreen> {
                 shape: CircleBorder()),
             child: Icon(
               Icons.play_circle_outline_rounded,
-              size: 20,
+              size: 24,
               color: Colors.white,
             ),
           ),
@@ -317,6 +316,7 @@ class _MainScreenState extends State<MainScreen> {
     print("_lastTranslatedStr : $_lastTranslatedStr");
     outputTextEditController.text = _lastTranslatedStr;
     translateToolEditController.text = "출처 : " + translateToolToUse.toString();
+    await textToSpeechControl.changeLanguage(targetLanguageItemToUse.speechLocaleId!);
     setState(() {
 
     });

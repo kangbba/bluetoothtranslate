@@ -7,12 +7,13 @@ class LanguageItem {
   final TranslateLanguage? translateLanguage;
   final String? menuDisplayStr;
   final String? speechLocaleId;
+  final String? textToSpeechId;
   final String? langCodeByGoogleTranslateByServer;
   final String? langCodeByPapagoServer;
   final int? arduinoUniqueId;
 
   LanguageItem(
-      {this.translateLanguage,this.menuDisplayStr, this.speechLocaleId, this.langCodeByGoogleTranslateByServer, this.langCodeByPapagoServer, this.arduinoUniqueId});
+      {this.translateLanguage,this.menuDisplayStr, this.speechLocaleId, this.textToSpeechId, this.langCodeByGoogleTranslateByServer, this.langCodeByPapagoServer, this.arduinoUniqueId});
 }
 class LanguageDatas {
   List<LanguageItem> languageItems = [

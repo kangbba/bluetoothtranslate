@@ -1,22 +1,23 @@
 import 'package:flutter/cupertino.dart';
-import 'package:text_to_speech/text_to_speech.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 import 'language_datas.dart';
 
 class TextToSpeechControl extends ChangeNotifier{
 
-  final TextToSpeech textToSpeech = TextToSpeech();
-  initTextToSpeech()
+  FlutterTts flutterTts = FlutterTts();
+  initTextToSpeech() async
   {
-
+    await flutterTts.setPitch(1.0);
+    await flutterTts.setSpeechRate(0.5);
   }
-  void speak(String str, LanguageItem? languageItem) {
-    textToSpeech.setVolume(1);
-    textToSpeech.setRate(1);
-    if (languageItem != null && languageItem.speechLocaleId != null && languageItem.speechLocaleId != '') {
-      textToSpeech.setLanguage(languageItem.speechLocaleId!);
-    }
-    textToSpeech.setPitch(1);
-    textToSpeech.speak(str);
+  changeLanguage(String langCode) async
+  {
+    List<String> separated = langCode.split('_');
+    String manuplatedLangCode = "${separated[0]}-${separated[1]}";
+    await flutterTts.setLanguage(manuplatedLangCode);
+  }
+  speak(String str) async {
+    await flutterTts.speak(str);
   }
 }
