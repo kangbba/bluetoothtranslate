@@ -5,7 +5,8 @@ import 'package:bluetoothtranslate/permission_controller.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/simple_snackbar.dart';
 import 'package:bluetoothtranslate/sizes.dart';
-import 'package:bluetoothtranslate/speech.dart';
+import 'package:bluetoothtranslate/speech_to_text_control.dart';
+import 'package:bluetoothtranslate/text_to_speech_control.dart';
 import 'package:bluetoothtranslate/translage_by_papagoserver.dart';
 import 'package:bluetoothtranslate/translate_by_googleserver.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:bluetoothtranslate/translate_by_googledevice.dart';
 import 'package:google_cloud_translation/google_cloud_translation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:provider/provider.dart';
+import 'package:text_to_speech/text_to_speech.dart';
 
 import 'language_datas.dart';
 
@@ -30,18 +32,24 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
 
   LanguageDatas languageDatas = LanguageDatas();
+
   TranslateByGoogleServer translateByGoogleServer = TranslateByGoogleServer();
   TranslateByGoogleDevice translateByGoogleDevice = TranslateByGoogleDevice();
   TranslateByPapagoServer translateByPapagoServer = TranslateByPapagoServer();
-  final SpeechControl speechControl = SpeechControl();
+  final SpeechToTextControl speechToTextControl = SpeechToTextControl();
+  final TextToSpeechControl textToSpeechControl = TextToSpeechControl();
+
 
   String _lastTranslatedStr = '';
+  LanguageItem? _lastTranslatedLanguageItem = null;
   TextEditingController inputTextEditController = TextEditingController();
   TextEditingController outputTextEditController = TextEditingController();
+  TextEditingController translateToolEditController = TextEditingController();
 
 
   late LanguageItem currentSourceLanguageItem;
   late LanguageItem currentTargetLanguageItem;
+
 
   @override
   void initState() {
@@ -53,7 +61,9 @@ class _MainScreenState extends State<MainScreen> {
     onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
     onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
 
-    speechControl.initSpeechToText(currentSourceLanguageItem);
+    speechToTextControl.initSpeechToText(currentSourceLanguageItem);
+    textToSpeechControl.initTextToSpeech();
+
     translateByGoogleDevice.initializeTranslateByGoogleDevice();
     translateByGoogleServer.initializeTranslateByGoogleServer();
     translateByPapagoServer.initializeTranslateByPapagoServer();
@@ -64,6 +74,7 @@ class _MainScreenState extends State<MainScreen> {
     // TODO: implement dispose
     inputTextEditController.dispose();
     outputTextEditController.dispose();
+    translateToolEditController.dispose();
     translateByGoogleDevice.disposeTranslateApi();
     super.dispose();
   }
@@ -73,8 +84,8 @@ class _MainScreenState extends State<MainScreen> {
     screenSize = MediaQuery.of(context).size;
     return MultiProvider(
       providers: [
-        ListenableProvider<SpeechControl>(
-          create: (_) => speechControl,
+        ListenableProvider<SpeechToTextControl>(
+          create: (_) => speechToTextControl,
         ),
       ],
       child: Scaffold(
@@ -105,8 +116,14 @@ class _MainScreenState extends State<MainScreen> {
               ),
               _translateFieldInput(screenSize.height/4),
               _separator(height : 1, top : 0, bottom: 0),
-              _translateFieldOutput(screenSize.height/4),
+              Stack(
+                  children:[
+                    _translateFieldOutput(screenSize.height/4),
+                    _textToSpeechBtn(),
+                  ]
+              ),
               _separator(height : 1, top : 0, bottom: 0),
+              _translateToolField(10),
               SizedBox(
                 height: 20.0,
               ),
@@ -129,15 +146,14 @@ class _MainScreenState extends State<MainScreen> {
   Widget _translateFieldInput(double height) {
     return SizedBox(
       height: height,
-      child: Consumer<SpeechControl>(
+      child: Consumer<SpeechToTextControl>(
         builder: (context, speech, child) {
-          inputTextEditController.text = speech.recongnizedText;
           return TextField(
             readOnly: true,
             controller: inputTextEditController,
             decoration: InputDecoration(
               border : InputBorder.none,
-              hintText: speechControl.isListening? "녹음중입니다" : "",
+              hintText: speechToTextControl.isListening? "녹음중입니다" : "",
             ),
           );
         },
@@ -145,18 +161,74 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  Widget _textToSpeechBtn()
+  {
+    if (outputTextEditController.text.isNotEmpty) {
+      return Positioned(
+        bottom: 8,
+        right: 8,
+        child: Container(
+          height: 24,
+          width: 24,
+          child: ElevatedButton(
+            onPressed: () {
+              textToSpeechControl.speak(outputTextEditController.text, _lastTranslatedLanguageItem);
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigoAccent,
+                padding: EdgeInsets.zero,
+                shape: CircleBorder()),
+            child: Icon(
+              Icons.play_circle_outline_rounded,
+              size: 20,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    } else{
+         return Container();
+    }
+  }
   Widget _translateFieldOutput(double height) {
     return SizedBox(
+      height: height,
+      child: Stack(
+        children: [
+          Consumer<SpeechToTextControl>(
+            builder: (context, speech, child) {
+              return TextField(
+                readOnly: true,
+                controller: outputTextEditController,
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  hintText: speechToTextControl.isListening ? "Recording..." : "",
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _translateToolField(double height) {
+    return SizedBox(
       height : height,
-      child: Consumer<SpeechControl>(
+      child: Consumer<SpeechToTextControl>(
         builder: (context, speech, child) {
-          outputTextEditController.text = _lastTranslatedStr;
-          return TextField(
-            readOnly: true,
-            controller: outputTextEditController,
-            decoration: InputDecoration(
-              border : InputBorder.none,
-              hintText: speechControl.isListening? "녹음중입니다" : "",
+          return Container(
+            alignment: Alignment.centerRight,
+            height: height,
+            child: TextField(
+              textAlign: TextAlign.end,
+              readOnly: true,
+              controller: translateToolEditController,
+              style: TextStyle(fontSize: 10),
+              decoration: InputDecoration(
+                border : InputBorder.none,
+                contentPadding: EdgeInsets.only(right: 10),
+              ),
             ),
           );
         },
@@ -164,9 +236,9 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Consumer<SpeechControl> _audioRecordBtn(BuildContext context) {
-    return Consumer<SpeechControl>(
-      builder: (context, speechControl, child) {
+  Consumer<SpeechToTextControl> _audioRecordBtn(BuildContext context) {
+    return Consumer<SpeechToTextControl>(
+      builder: (context, speechToTextControl, child) {
         return ElevatedButton(
           child: AnimatedSwitcher(
             duration: Duration(milliseconds: 300),
@@ -177,7 +249,7 @@ class _MainScreenState extends State<MainScreen> {
               child: child,
             ),
             child: Icon(
-              speechControl.isListening ? Icons.stop : Icons.mic,
+              speechToTextControl.isListening ? Icons.stop : Icons.mic,
             ),
           ),
           onPressed: () async{
@@ -187,13 +259,12 @@ class _MainScreenState extends State<MainScreen> {
               PermissionController.showNoPermissionSnackBar(context);
             }
             else {
-              if (speechControl.isListening) {
+              if (speechToTextControl.isListening) {
                 isOn = false;
-                await speechControl.stopListening();
+                await stopListening();
               } else {
                 isOn = true;
-                await speechControl.startListening();
-                await whenSpeechEnd();
+                await startListening();
               }
               setState(() {});
             }
@@ -202,12 +273,53 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
   }
-  whenSpeechEnd() async
+  startListening() async{
+
+    inputTextEditController.text = '';
+    outputTextEditController.text = '';
+    speechToTextControl.recentRecognizedWords = '';
+
+    print("startListening");
+    speechToTextControl.isListening = true;
+    await speechToTextControl.speechToText.listen(
+      localeId: speechToTextControl.currentLocaleId,
+      onResult: (result) async {
+        speechToTextControl.recentRecognizedWords = result.recognizedWords;
+        print("SpeechToText 듣는중 : $result");
+        if(result.finalResult)
+        {
+          await stopListening();
+          await whenSpeechEnd(speechToTextControl.recentRecognizedWords);
+        }
+        else{
+          inputTextEditController.text = speechToTextControl.recentRecognizedWords;
+        }
+      },
+    );
+  }
+  stopListening() async{
+    print("endListening");
+    speechToTextControl.isListening = false;
+    await speechToTextControl.speechToText.stop();
+  }
+  whenSpeechEnd(String recentRecognizedWords) async
   {
-    bool isContainChina = (currentSourceLanguageItem.translateLanguage == TranslateLanguage.chinese) || (currentTargetLanguageItem.translateLanguage == TranslateLanguage.chinese);
-    TranslateTool TranslateToolToUse = isContainChina ? TranslateTool.papagoServer : TranslateTool.googleServer;
-    _lastTranslatedStr = await _translateTextWithCurrentLanguage(inputTextEditController.text, TranslateToolToUse);
+    inputTextEditController.text = recentRecognizedWords;
+    LanguageItem sourceLanguageItemToUse = currentSourceLanguageItem;
+    LanguageItem targetLanguageItemToUse = currentTargetLanguageItem;
+
+    bool isContainChina = (sourceLanguageItemToUse.translateLanguage == TranslateLanguage.chinese) || (targetLanguageItemToUse.translateLanguage == TranslateLanguage.chinese);
+    TranslateTool translateToolToUse = isContainChina ? TranslateTool.papagoServer : TranslateTool.googleServer;
+
+    _lastTranslatedStr = await _translateTextWithCurrentLanguage(recentRecognizedWords, translateToolToUse);
+    _lastTranslatedLanguageItem = targetLanguageItemToUse;
+
     print("_lastTranslatedStr : $_lastTranslatedStr");
+    outputTextEditController.text = _lastTranslatedStr;
+    translateToolEditController.text = "출처 : " + translateToolToUse.toString();
+    setState(() {
+
+    });
   }
   Future<String> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
   {
@@ -235,7 +347,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   onSelectedSourceDropdownMenuItem(LanguageItem languageItem) {
-    speechControl.changeCurrentLocal(languageItem.speechLocaleId!);
+    speechToTextControl.currentLocaleId = (languageItem.speechLocaleId!);
     setState(() {
       currentSourceLanguageItem = languageItem;
     });
