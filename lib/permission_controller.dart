@@ -2,7 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionController {
-
+  static Future<bool> checkIfBluetoothPermissionsGranted() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.location,
+      Permission.bluetooth,
+    ].request();
+    bool permitted = true;
+    statuses.forEach((permission, permissionStatus) {
+      if (!permissionStatus.isGranted) {
+        permitted = false;
+      }
+    });
+    return permitted;
+  }
   static Future<bool> checkIfVoiceRecognitionPermisionGranted() async
   {
     Map<Permission, PermissionStatus> statuses = await [

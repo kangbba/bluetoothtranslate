@@ -1,6 +1,7 @@
 
 import 'dart:async';
 
+import 'package:bluetoothtranslate/bluetooth_control.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/simple_snackbar.dart';
@@ -11,6 +12,7 @@ import 'package:bluetoothtranslate/translage_by_papagoserver.dart';
 import 'package:bluetoothtranslate/translate_by_googleserver.dart';
 import 'package:flutter/material.dart';
 import 'package:bluetoothtranslate/translate_by_googledevice.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:google_cloud_translation/google_cloud_translation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +33,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
 
   LanguageDatas languageDatas = LanguageDatas();
+  BluetoothControl bluetoothControl = BluetoothControl();
 
   TranslateByGoogleServer translateByGoogleServer = TranslateByGoogleServer();
   TranslateByGoogleDevice translateByGoogleDevice = TranslateByGoogleDevice();
@@ -50,10 +53,12 @@ class _MainScreenState extends State<MainScreen> {
   late LanguageItem currentTargetLanguageItem;
 
 
+
   @override
   void initState() {
     super.initState();
     languageDatas.initializeLanguageDatas();
+    bluetoothControl.initializeBluetoothControl();
 
     currentSourceLanguageItem = languageDatas.languageItems[0];
     currentTargetLanguageItem = languageDatas.languageItems[2];
@@ -126,6 +131,7 @@ class _MainScreenState extends State<MainScreen> {
               SizedBox(
                 height: 20.0,
               ),
+              blootoothDeviceSelectBtn(context),
             ],
           ),
         ),
@@ -252,17 +258,14 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
           onPressed: () async{
-            bool isOn = false;
             bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
             if (!hasPermission) {
               PermissionController.showNoPermissionSnackBar(context);
             }
             else {
               if (speechToTextControl.isListening) {
-                isOn = false;
                 await stopListening();
               } else {
-                isOn = true;
                 await startListening();
               }
               setState(() {});
@@ -401,6 +404,22 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget blootoothDeviceSelectBtn(BuildContext context) {
+    return ElevatedButton(
+      child: Text("Scan for Devices"),
+      onPressed: () async {
+
+        bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
+        if (!hasPermission) {
+          PermissionController.showNoPermissionSnackBar(context);
+        }
+        else{
+          await bluetoothControl.scanningDevices(context);
+        }
+      },
     );
   }
 }
