@@ -10,6 +10,7 @@ import 'package:bluetoothtranslate/speech_to_text_control.dart';
 import 'package:bluetoothtranslate/text_to_speech_control.dart';
 import 'package:bluetoothtranslate/translage_by_papagoserver.dart';
 import 'package:bluetoothtranslate/translate_by_googleserver.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:bluetoothtranslate/translate_by_googledevice.dart';
 import 'package:google_cloud_translation/google_cloud_translation.dart';
@@ -259,6 +260,7 @@ class _MainScreenState extends State<MainScreen> {
     return Consumer<SpeechToTextControl>(
       builder: (context, speechToTextControl, child) {
         return ElevatedButton(
+          style: standardBtnStyle(),
           child: AnimatedSwitcher(
             duration: Duration(milliseconds: 300),
             switchInCurve: Curves.easeOut,
@@ -431,11 +433,18 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  ButtonStyle standardBtnStyle()
+  {
+    return ElevatedButton.styleFrom(
+        backgroundColor: Colors.indigoAccent,
+        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(6.0)));
+  }
   Widget blootoothDeviceSelectBtn(BuildContext context) {
     return ElevatedButton(
-      child: Text("Scan for Devices"),
+      child: Icon(Icons.bluetooth_searching),
+      style: standardBtnStyle(),
       onPressed: () async {
-
         bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
         if (!hasPermission) {
           PermissionController.showNoPermissionSnackBar(context);
