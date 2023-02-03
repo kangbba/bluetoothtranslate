@@ -6,7 +6,7 @@ Future<bool?> simpleConfirmDialog(BuildContext context, String message) async {
     barrierDismissible: false,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text('Confirm'),
+        title: Text(message),
         content: Text(message),
         actions: <Widget>[
           ElevatedButton(

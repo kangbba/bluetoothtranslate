@@ -91,6 +91,9 @@ class _MainScreenState extends State<MainScreen> {
         ListenableProvider<SpeechToTextControl>(
           create: (_) => speechToTextControl,
         ),
+        ListenableProvider<BluetoothControl>(
+          create: (_) => BluetoothControl(),
+        ),
       ],
       child: Scaffold(
         appBar: AppBar(
@@ -132,6 +135,16 @@ class _MainScreenState extends State<MainScreen> {
                 height: 20.0,
               ),
               blootoothDeviceSelectBtn(context),
+              Consumer<BluetoothControl>(
+                builder: (context, bluetoothControl, child) {
+                  return Text(
+                    bluetoothControl.recentBluetoothDevice != null
+                        ? bluetoothControl.recentBluetoothDevice!.name!
+                        : "No recent device",
+                    style: TextStyle(fontSize: 8),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -313,13 +326,23 @@ class _MainScreenState extends State<MainScreen> {
     bool isContainChina = (sourceLanguageItemToUse.translateLanguage == TranslateLanguage.chinese) || (targetLanguageItemToUse.translateLanguage == TranslateLanguage.chinese);
     TranslateTool translateToolToUse = isContainChina ? TranslateTool.papagoServer : TranslateTool.googleServer;
 
-    _lastTranslatedStr = await _translateTextWithCurrentLanguage(recentRecognizedWords, translateToolToUse);
+    String translatedWords = await _translateTextWithCurrentLanguage(recentRecognizedWords, translateToolToUse);
+
+    print("_lastTranslatedStr : $translatedWords");
+    outputTextEditController.text = translatedWords;
+    translateToolEditController.text = "출처 : " + translateToolToUse.toString();
+
+    _lastTranslatedStr = translatedWords;
     _lastTranslatedLanguageItem = targetLanguageItemToUse;
 
-    print("_lastTranslatedStr : $_lastTranslatedStr");
-    outputTextEditController.text = _lastTranslatedStr;
-    translateToolEditController.text = "출처 : " + translateToolToUse.toString();
+    int arduinoUniqueId = targetLanguageItemToUse.arduinoUniqueId!;
+    String msg = translatedWords;
+    String fullMsgToSend = '$arduinoUniqueId:$msg;';
+    bool sendSuccess = await bluetoothControl.sendDataOverBluetooth(fullMsgToSend);
+    print("bluetooth 전송 ${sendSuccess ? '성공' : '실패'}");
+
     await textToSpeechControl.changeLanguage(targetLanguageItemToUse.speechLocaleId!);
+
     setState(() {
 
     });

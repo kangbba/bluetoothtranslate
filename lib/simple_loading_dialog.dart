@@ -1,24 +1,15 @@
 import 'package:flutter/material.dart';
-Future<void> simpleLoadingDialog(BuildContext context, String title) async {
-  return showDialog<void>(
+simpleLoadingDialog(BuildContext context, String title) async {
+  return showGeneralDialog(
     context: context,
     barrierDismissible: false,
-    builder: (BuildContext context) {
-      return SimpleDialog(
-        children: <Widget>[
-          Padding(
-            padding: EdgeInsets.all(20),
-            child: Center(
-              child: Column(
-                children: <Widget>[
-                  CircularProgressIndicator(),
-                  SizedBox(height: 20),
-                  Text(title),
-                ],
-              ),
-            ),
-          ),
-        ],
+    transitionDuration: Duration(milliseconds: 300),
+    pageBuilder: (context, anim1, anim2) {
+      return Container(
+        color: Colors.black54,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     },
   );
