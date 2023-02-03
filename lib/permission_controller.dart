@@ -6,6 +6,10 @@ class PermissionController {
     Map<Permission, PermissionStatus> statuses = await [
       Permission.location, // 옛날폰 android에 필요
       Permission.bluetooth, // 옛날폰 android에 필요
+      Permission.bluetoothConnect,
+      Permission.bluetoothScan,
+      Permission.bluetoothAdvertise,
+      Permission.locationAlways
     ].request();
     bool permitted = true;
     statuses.forEach((permission, permissionStatus) {
