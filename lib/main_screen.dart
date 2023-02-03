@@ -44,9 +44,9 @@ class _MainScreenState extends State<MainScreen> {
 
   String _lastTranslatedStr = '';
   LanguageItem? _lastTranslatedLanguageItem = null;
+  TranslateTool? _lastTranslatedTool = null;
   TextEditingController inputTextEditController = TextEditingController();
   TextEditingController outputTextEditController = TextEditingController();
-  TextEditingController translateToolEditController = TextEditingController();
 
 
   late LanguageItem currentSourceLanguageItem;
@@ -78,7 +78,6 @@ class _MainScreenState extends State<MainScreen> {
     // TODO: implement dispose
     inputTextEditController.dispose();
     outputTextEditController.dispose();
-    translateToolEditController.dispose();
     translateByGoogleDevice.disposeTranslateApi();
     super.dispose();
   }
@@ -92,7 +91,7 @@ class _MainScreenState extends State<MainScreen> {
           create: (_) => speechToTextControl,
         ),
         ListenableProvider<BluetoothControl>(
-          create: (_) => BluetoothControl(),
+          create: (_) => bluetoothControl,
         ),
       ],
       child: Scaffold(
@@ -115,22 +114,13 @@ class _MainScreenState extends State<MainScreen> {
                     width: 20.0,
                   ),
                   _dropdownMenuOutput(),
-
                 ],
               ),
-              SizedBox(
-                height: 20.0,
-              ),
-              _translateFieldInput(screenSize.height/4),
+              _translateFieldInput(screenSize.height / 5),
               _separator(height : 1, top : 0, bottom: 0),
-              Stack(
-                  children:[
-                    _translateFieldOutput(screenSize.height/4),
-                    _textToSpeechBtn(),
-                  ]
-              ),
-              _separator(height : 1, top : 0, bottom: 0),
-              _translateToolField(10),
+              _translatedTextDescriptions(),
+              _translateFieldOutput(screenSize.height / 5),
+              _separator(height : 1, top : 5, bottom: 0),
               SizedBox(
                 height: 20.0,
               ),
@@ -138,8 +128,7 @@ class _MainScreenState extends State<MainScreen> {
               Consumer<BluetoothControl>(
                 builder: (context, bluetoothControl, child) {
                   return Text(
-                    bluetoothControl.recentBluetoothDevice != null
-                        ? bluetoothControl.recentBluetoothDevice!.name!
+                    bluetoothControl.recentBluetoothDevice != null ? bluetoothControl.recentBluetoothDevice!.name!
                         : "No recent device",
                     style: TextStyle(fontSize: 8),
                   );
@@ -161,44 +150,36 @@ class _MainScreenState extends State<MainScreen> {
 
 
 
-  Widget _translateFieldInput(double height) {
+  Widget _translatedTextDescriptions()
+  {
     return SizedBox(
-      height: height,
-      child: Consumer<SpeechToTextControl>(
-        builder: (context, speech, child) {
-          return TextField(
-            readOnly: true,
-            controller: inputTextEditController,
-            decoration: InputDecoration(
-              border : InputBorder.none,
-              hintText: speechToTextControl.isListening? "녹음중입니다" : "",
-            ),
-          );
-        },
+      height: 30,
+      child: Stack(
+        children: [
+          Positioned(left: 2, top: 4, child: _textToSpeechBtn()),
+          Positioned(right : 0, top: 8, child: _translateToolField()),
+        ]
       ),
     );
   }
-
   Widget _textToSpeechBtn()
   {
     if (outputTextEditController.text.isNotEmpty) {
-      return Positioned(
-        bottom: 8,
-        left: 8,
-        child: Container(
-          height: 24,
-          width: 24,
+      return SizedBox(
+        width: 22,
+        height: 18,
+        child: Expanded(
           child: ElevatedButton(
             onPressed: () {
               textToSpeechControl.speak(outputTextEditController.text);
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigoAccent,
-                padding: EdgeInsets.zero,
-                shape: CircleBorder()),
+              backgroundColor: Colors.indigoAccent,
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(6.0))),
             child: Icon(
-              Icons.play_circle_outline_rounded,
-              size: 24,
+              Icons.play_arrow,
+              size: 14,
               color: Colors.white,
             ),
           ),
@@ -208,50 +189,71 @@ class _MainScreenState extends State<MainScreen> {
          return Container();
     }
   }
+
+  Widget _translateFieldInput(double height) {
+    return SizedBox(
+      height: height,
+      child: Expanded(
+        child: Consumer<SpeechToTextControl>(
+          builder: (context, speech, child) {
+            return TextField(
+              readOnly: true,
+              keyboardType: TextInputType.multiline,
+              maxLines: 4,
+              controller: inputTextEditController,
+              decoration: InputDecoration(
+                border : InputBorder.none,
+                hintText: speechToTextControl.isListening? "녹음중입니다" : "",
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
   Widget _translateFieldOutput(double height) {
     return SizedBox(
       height: height,
-      child: Stack(
-        children: [
-          Consumer<SpeechToTextControl>(
-            builder: (context, speech, child) {
-              return TextField(
-                readOnly: true,
-                controller: outputTextEditController,
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: speechToTextControl.isListening ? "Recording..." : "",
-                ),
-              );
-            },
-          ),
-        ],
+      child: Expanded(
+        child: Consumer<SpeechToTextControl>(
+          builder: (context, speech, child) {
+            return TextField(
+              keyboardType: TextInputType.multiline,
+              maxLines: 4,
+              readOnly: true,
+              controller: outputTextEditController,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: speechToTextControl.isListening ? "Recording..." : "",
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _translateToolField(double height) {
-    return SizedBox(
-      height : height,
-      child: Consumer<SpeechToTextControl>(
-        builder: (context, speech, child) {
-          return Container(
-            alignment: Alignment.centerRight,
-            height: height,
-            child: TextField(
-              textAlign: TextAlign.end,
-              readOnly: true,
-              controller: translateToolEditController,
-              style: TextStyle(fontSize: 10),
-              decoration: InputDecoration(
-                border : InputBorder.none,
-                contentPadding: EdgeInsets.only(right: 10),
-              ),
-            ),
-          );
-        },
-      ),
-    );
+  Widget _translateToolField() {
+    String translateToolStr;
+    switch (_lastTranslatedTool) {
+      case TranslateTool.googleServer:
+        translateToolStr = "Google Server";
+        break;
+      case TranslateTool.googleDevice:
+        translateToolStr = "Google Device";
+        break;
+      case TranslateTool.papagoServer:
+        translateToolStr = "Papago Server";
+        break;
+      default:
+        translateToolStr = "없음";
+        break;
+    }
+    if (_lastTranslatedTool != null) {
+      return Text("출처 : $translateToolStr", style: TextStyle(fontSize: 8),);
+    } else {
+      return Container();
+    }
   }
 
   Consumer<SpeechToTextControl> _audioRecordBtn(BuildContext context) {
@@ -330,10 +332,10 @@ class _MainScreenState extends State<MainScreen> {
 
     print("_lastTranslatedStr : $translatedWords");
     outputTextEditController.text = translatedWords;
-    translateToolEditController.text = "출처 : " + translateToolToUse.toString();
 
     _lastTranslatedStr = translatedWords;
     _lastTranslatedLanguageItem = targetLanguageItemToUse;
+    _lastTranslatedTool = translateToolToUse;
 
     int arduinoUniqueId = targetLanguageItemToUse.arduinoUniqueId!;
     String msg = translatedWords;
