@@ -4,8 +4,8 @@ import 'package:permission_handler/permission_handler.dart';
 class PermissionController {
   static Future<bool> checkIfBluetoothPermissionsGranted() async {
     Map<Permission, PermissionStatus> statuses = await [
-      Permission.location,
-      Permission.bluetooth,
+      Permission.location, // 옛날폰 android에 필요
+      Permission.bluetooth, // 옛날폰 android에 필요
     ].request();
     bool permitted = true;
     statuses.forEach((permission, permissionStatus) {

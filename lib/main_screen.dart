@@ -168,20 +168,18 @@ class _MainScreenState extends State<MainScreen> {
       return SizedBox(
         width: 22,
         height: 18,
-        child: Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-              textToSpeechControl.speak(outputTextEditController.text);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.indigoAccent,
-              padding: EdgeInsets.zero,
-              shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(6.0))),
-            child: Icon(
-              Icons.play_arrow,
-              size: 14,
-              color: Colors.white,
-            ),
+        child: ElevatedButton(
+          onPressed: () {
+            _onClickedTextToSpeechBtn();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.indigoAccent,
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(6.0))),
+          child: Icon(
+            Icons.play_arrow,
+            size: 14,
+            color: Colors.white,
           ),
         ),
       );
@@ -193,42 +191,38 @@ class _MainScreenState extends State<MainScreen> {
   Widget _translateFieldInput(double height) {
     return SizedBox(
       height: height,
-      child: Expanded(
-        child: Consumer<SpeechToTextControl>(
-          builder: (context, speech, child) {
-            return TextField(
-              readOnly: true,
-              keyboardType: TextInputType.multiline,
-              maxLines: 4,
-              controller: inputTextEditController,
-              decoration: InputDecoration(
-                border : InputBorder.none,
-                hintText: speechToTextControl.isListening? "녹음중입니다" : "",
-              ),
-            );
-          },
-        ),
+      child: Consumer<SpeechToTextControl>(
+        builder: (context, speech, child) {
+          return TextField(
+            readOnly: true,
+            keyboardType: TextInputType.multiline,
+            maxLines: 4,
+            controller: inputTextEditController,
+            decoration: InputDecoration(
+              border : InputBorder.none,
+              hintText: speechToTextControl.isListening? "녹음중입니다" : "",
+            ),
+          );
+        },
       ),
     );
   }
   Widget _translateFieldOutput(double height) {
     return SizedBox(
       height: height,
-      child: Expanded(
-        child: Consumer<SpeechToTextControl>(
-          builder: (context, speech, child) {
-            return TextField(
-              keyboardType: TextInputType.multiline,
-              maxLines: 4,
-              readOnly: true,
-              controller: outputTextEditController,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: speechToTextControl.isListening ? "Recording..." : "",
-              ),
-            );
-          },
-        ),
+      child: Consumer<SpeechToTextControl>(
+        builder: (context, speech, child) {
+          return TextField(
+            keyboardType: TextInputType.multiline,
+            maxLines: 4,
+            readOnly: true,
+            controller: outputTextEditController,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: speechToTextControl.isListening ? "Recording..." : "",
+            ),
+          );
+        },
       ),
     );
   }
@@ -341,11 +335,12 @@ class _MainScreenState extends State<MainScreen> {
     int arduinoUniqueId = targetLanguageItemToUse.arduinoUniqueId!;
     String msg = translatedWords;
     String fullMsgToSend = '$arduinoUniqueId:$msg;';
+
+    await textToSpeechControl.changeLanguage(targetLanguageItemToUse.speechLocaleId!);
     bool sendSuccess = await bluetoothControl.sendDataOverBluetooth(fullMsgToSend);
     print("bluetooth 전송 ${sendSuccess ? '성공' : '실패'}");
 
-    await textToSpeechControl.changeLanguage(targetLanguageItemToUse.speechLocaleId!);
-
+    _onClickedTextToSpeechBtn();
     setState(() {
 
     });
@@ -454,6 +449,10 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
     );
+  }
+
+  void _onClickedTextToSpeechBtn() {
+    textToSpeechControl.speak(outputTextEditController.text);
   }
 }
 
