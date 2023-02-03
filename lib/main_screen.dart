@@ -12,7 +12,6 @@ import 'package:bluetoothtranslate/translage_by_papagoserver.dart';
 import 'package:bluetoothtranslate/translate_by_googleserver.dart';
 import 'package:flutter/material.dart';
 import 'package:bluetoothtranslate/translate_by_googledevice.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:google_cloud_translation/google_cloud_translation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:provider/provider.dart';
