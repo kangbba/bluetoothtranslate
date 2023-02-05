@@ -1,5 +1,7 @@
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:bluetoothtranslate/bluetooth_control.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
@@ -129,6 +131,7 @@ class _MainScreenState extends State<MainScreen> {
                 height: 20.0,
               ),
               bluetoothDeviceSelectBtn(context),
+              _sendHelloTest(context),
               Consumer<BluetoothControl>(
                   builder: (context, bluetoothControl, child) {
                     return Text(
@@ -151,6 +154,28 @@ class _MainScreenState extends State<MainScreen> {
       margin: EdgeInsets.only(top: top, bottom: bottom),
       color: Colors.grey[300],
     );
+  }
+  Widget _sendHelloTest(BuildContext context)
+  {
+    return ElevatedButton(
+        onPressed: () async {
+          BluetoothDevice? device = _bluetoothControl.recentBluetoothDevice;
+          print("${device?.name}");
+          if (device != null) {
+            device.state.listen((state) async {
+              if (state == BluetoothDeviceState.connected) {
+                BluetoothCharacteristic bluetoothCharacteristic = await _bluetoothControl.findCharacteristicByDevice(device, "4fafc201-1fb5-459e-8fcc-c5c9c331914b", "beb5483e-36e1-4688-b7f5-ea07361b26a8");
+                await _bluetoothControl.writeCharacteristic(bluetoothCharacteristic, "Hello");
+                print("test");
+              } else if (state == BluetoothDeviceState.disconnected) {
+                print("device disconnected");
+                await device.connect();
+              }
+            });
+          } else {
+          }
+        },
+        child: Icon(Icons.add));
   }
 
 
@@ -446,7 +471,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   //TODO : 블루투스 관련 기능
-
   Widget bluetoothDeviceSelectBtn(BuildContext context) {
     return ElevatedButton(
       child: Icon(Icons.bluetooth_searching),
@@ -461,6 +485,7 @@ class _MainScreenState extends State<MainScreen> {
             MaterialPageRoute(
               fullscreenDialog: false,
               builder: (context) {
+                _bluetoothControl.stopScan();
                 return DeviceSelectScreen(bluetoothControl: _bluetoothControl);
               },
             ),
