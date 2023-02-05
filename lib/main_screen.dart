@@ -7,16 +7,19 @@ import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/simple_snackbar.dart';
 import 'package:bluetoothtranslate/sizes.dart';
 import 'package:bluetoothtranslate/speech_to_text_control.dart';
+import 'package:bluetoothtranslate/test_screen.dart';
 import 'package:bluetoothtranslate/text_to_speech_control.dart';
 import 'package:bluetoothtranslate/translage_by_papagoserver.dart';
 import 'package:bluetoothtranslate/translate_by_googleserver.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:bluetoothtranslate/translate_by_googledevice.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:google_cloud_translation/google_cloud_translation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:provider/provider.dart';
 
+import 'device_select_screen.dart';
 import 'language_datas.dart';
 
 enum TranslateTool
@@ -32,8 +35,9 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
 
+  BluetoothControl _bluetoothControl = BluetoothControl();
+
   LanguageDatas languageDatas = LanguageDatas();
-  BluetoothControl bluetoothControl = BluetoothControl();
 
   TranslateByGoogleServer translateByGoogleServer = TranslateByGoogleServer();
   TranslateByGoogleDevice translateByGoogleDevice = TranslateByGoogleDevice();
@@ -58,7 +62,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     languageDatas.initializeLanguageDatas();
-    bluetoothControl.initializeBluetoothControl();
+    _bluetoothControl.initializeBluetoothControl();
 
     currentSourceLanguageItem = languageDatas.languageItems[0];
     currentTargetLanguageItem = languageDatas.languageItems[2];
@@ -91,7 +95,7 @@ class _MainScreenState extends State<MainScreen> {
           create: (_) => speechToTextControl,
         ),
         ListenableProvider<BluetoothControl>(
-          create: (_) => bluetoothControl,
+          create: (_) => _bluetoothControl,
         ),
       ],
       child: Scaffold(
@@ -124,7 +128,7 @@ class _MainScreenState extends State<MainScreen> {
               SizedBox(
                 height: 20.0,
               ),
-              blootoothDeviceSelectBtn(context),
+              bluetoothDeviceSelectBtn(context),
               // Consumer<BluetoothControl>(
               //   builder: (context, bluetoothControl, child) {
               //     return Text(
@@ -435,7 +439,14 @@ class _MainScreenState extends State<MainScreen> {
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(6.0)));
   }
-  Widget blootoothDeviceSelectBtn(BuildContext context) {
+
+  void _onClickedTextToSpeechBtn() {
+    textToSpeechControl.speak(outputTextEditController.text);
+  }
+
+  //TODO : 블루투스 관련 기능
+
+  Widget bluetoothDeviceSelectBtn(BuildContext context) {
     return ElevatedButton(
       child: Icon(Icons.bluetooth_searching),
       style: standardBtnStyle(),
@@ -445,13 +456,17 @@ class _MainScreenState extends State<MainScreen> {
           PermissionController.showNoPermissionSnackBar(context);
         }
         else{
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              fullscreenDialog: false,
+              builder: (context) {
+                return DeviceSelectScreen(bluetoothControl: _bluetoothControl);
+              },
+            ),
+          );
         }
       },
     );
-  }
-
-  void _onClickedTextToSpeechBtn() {
-    textToSpeechControl.speak(outputTextEditController.text);
   }
 }
 

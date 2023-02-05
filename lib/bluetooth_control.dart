@@ -14,27 +14,38 @@ class BluetoothControl extends ChangeNotifier
 {
   FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
 
+  List<ScanResult> _scanResults = [];
+
+  List<ScanResult> get scanResults => _scanResults;
+
   void initializeBluetoothControl() {
-    startScan();
   }
 
-  startScan()
-  {
-    // Start scanning
-    flutterBlue.startScan(timeout: Duration(seconds: 4));
+  bool isScanning = false;
 
-// Listen to scan results
-    var subscription = flutterBlue.scanResults.listen((results) {
-      // do something with scan results
-      for (ScanResult r in results) {
-        print('${r.device.name} found! rssi: ${r.rssi}');
-      }
-    });
+  void startScan() {
+    if (!isScanning) {
+      isScanning = true;
+      flutterBlue.startScan(timeout: Duration(seconds: 4));
+
+      var subscription = flutterBlue.scanResults.listen((results) {
+        results.sort((a, b) => b.device.name.compareTo(a.device.name));
+        _scanResults = results;
+        notifyListeners();
+      });
+
+      subscription.onDone(() {
+        isScanning = false;
+        flutterBlue.stopScan();
+      });
+    }
   }
 
-  stopScan()
-  {
-// Stop scanning
-    flutterBlue.stopScan();
+  void stopScan() {
+    if (isScanning) {
+      isScanning = false;
+      flutterBlue.stopScan();
+    }
   }
+
 }
