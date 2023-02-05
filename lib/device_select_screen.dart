@@ -1,6 +1,8 @@
 import 'package:bluetoothtranslate/simple_ask_dialog.dart';
 import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
+import 'package:bluetoothtranslate/simple_separator.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:provider/provider.dart';
@@ -34,11 +36,19 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
                 return AlertDialog(
                   contentPadding: EdgeInsets.all(15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  title: Text("Bluetooth Devices"),
-                  content: Column(
+                  title: Text("기기 선택", textAlign: TextAlign.center),
+                  backgroundColor: Colors.white,
+                  content: Stack(
                     children: [
-                      Text("발견된 디바이스수 : ${widget.bluetoothControl.scanResults.length}"),
+                      // Text("발견된 디바이스수 : ${widget.bluetoothControl.scanResults.length}"),
                       Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.grey,
+                            width: 0.5,
+                          ),
+                          shape: BoxShape.rectangle,
+                        ),
                         height: 250,
                         child: ListView.builder(
                           itemCount: widget.bluetoothControl.scanResults.length,
@@ -73,29 +83,33 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
     );
   }
 
+  TextStyle contentTextStyle(double fontSize, Color color)
+  {
+    return TextStyle(fontSize: fontSize, color: color);
+  }
+
   Widget deviceListTile(BuildContext context, int index, AsyncSnapshot<BluetoothDeviceState> snapshot) {
     return ListTile(
       title: Row(
         children: [
-          Text(widget.bluetoothControl.scanResults[index].device.name),
+          Text(widget.bluetoothControl.scanResults[index].device.name.isNotEmpty ? widget.bluetoothControl.scanResults[index].device.name : "UNKNOWN",
+            style: contentTextStyle(15,Colors.black87),
+          ),
           Text(
             (snapshot.data == BluetoothDeviceState.connected ? "   (Connected)" : "   (Disconnected)"),
-            style: TextStyle(fontSize: 8),
+            style: contentTextStyle(6,Colors.black87),
           )
         ],
       ),
-      subtitle: Text(widget.bluetoothControl.scanResults[index].device.id.toString()),
-      trailing: infoBtn(context, widget.bluetoothControl.scanResults[index].device),
+      subtitle: Text(widget.bluetoothControl.scanResults[index].device.id.toString(), style: contentTextStyle(10,Colors.black38),),
+      // trailing: infoBtn(context, widget.bluetoothControl.scanResults[index].device),
       onTap: () async {
         bool isConnected =snapshot.data == BluetoothDeviceState.connected;
         bool? confirmed = await simpleAskDialog(context,widget.bluetoothControl.scanResults[index].device.name + "에 연결하시겠습니까?", "");
         if (!isConnected && confirmed!) {
-          simpleLoadingDialog(context, "");
           ScanResult scanResult = widget.bluetoothControl.scanResults[index];
           BluetoothDevice device = scanResult.device;
-          await device.connect().then((value) {
-            widget.bluetoothControl.recentBluetoothDevice = device;
-          });
+          await widget.bluetoothControl.connectDevice(device);
         }
         else{
         }

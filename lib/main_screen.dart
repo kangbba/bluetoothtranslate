@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:bluetoothtranslate/bluetooth_control.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
+import 'package:bluetoothtranslate/simple_separator.dart';
 import 'package:bluetoothtranslate/simple_snackbar.dart';
 import 'package:bluetoothtranslate/sizes.dart';
 import 'package:bluetoothtranslate/speech_to_text_control.dart';
@@ -123,10 +124,10 @@ class _MainScreenState extends State<MainScreen> {
                 ],
               ),
               _translateFieldInput(screenSize.height / 5),
-              _separator(height : 1, top : 0, bottom: 0),
+              SimpleSeparator(height: 1, top: 0, bottom: 0),
               _translatedTextDescriptions(),
               _translateFieldOutput(screenSize.height / 5),
-              _separator(height : 1, top : 5, bottom: 0),
+              SimpleSeparator(height: 1, top: 5, bottom: 0),
               SizedBox(
                 height: 20.0,
               ),
@@ -148,32 +149,11 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-  Container _separator({double height = 1, double top = 0, double bottom = 0}) {
-    return Container(
-      height: height,
-      margin: EdgeInsets.only(top: top, bottom: bottom),
-      color: Colors.grey[300],
-    );
-  }
   Widget _sendHelloTest(BuildContext context)
   {
     return ElevatedButton(
         onPressed: () async {
-          BluetoothDevice? device = _bluetoothControl.recentBluetoothDevice;
-          print("${device?.name}");
-          if (device != null) {
-            device.state.listen((state) async {
-              if (state == BluetoothDeviceState.connected) {
-                BluetoothCharacteristic bluetoothCharacteristic = await _bluetoothControl.findCharacteristicByDevice(device, "4fafc201-1fb5-459e-8fcc-c5c9c331914b", "beb5483e-36e1-4688-b7f5-ea07361b26a8");
-                await _bluetoothControl.writeCharacteristic(bluetoothCharacteristic, "Hello");
-                print("test");
-              } else if (state == BluetoothDeviceState.disconnected) {
-                print("device disconnected");
-                await device.connect();
-              }
-            });
-          } else {
-          }
+          await _bluetoothControl.sendMessage("0:HelloTest2;");
         },
         child: Icon(Icons.add));
   }
@@ -367,13 +347,12 @@ class _MainScreenState extends State<MainScreen> {
     String fullMsgToSend = '$arduinoUniqueId:$msg;';
 
     await textToSpeechControl.changeLanguage(targetLanguageItemToUse.speechLocaleId!);
-    // bool sendSuccess = await bluetoothControl.sendDataOverBluetooth(fullMsgToSend);
-    // print("bluetooth 전송 ${sendSuccess ? '성공' : '실패'}");
-
     _onClickedTextToSpeechBtn();
     setState(() {
 
     });
+    bool sendSuccess = await _bluetoothControl.sendMessage(fullMsgToSend);
+    print("bluetooth 전송 ${sendSuccess ? '성공' : '실패'}");
   }
   Future<String> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
   {

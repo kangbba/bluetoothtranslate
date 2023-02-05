@@ -29,10 +29,11 @@ class BluetoothControl extends ChangeNotifier
   }
 
 
-  void startScan() {
+  void startScan() async{
+    await stopScan();
     if (!isScanning) {
       isScanning = true;
-      flutterBlue.startScan(timeout: Duration(seconds: 4));
+      flutterBlue.startScan(timeout: Duration(seconds: 5));
 
       subscription = flutterBlue.scanResults.listen((results) {
         results.sort((a, b) => b.device.name.compareTo(a.device.name));
@@ -40,17 +41,23 @@ class BluetoothControl extends ChangeNotifier
         notifyListeners();
       });
 
-      subscription!.onDone(() {
-        isScanning = false;
-        flutterBlue.stopScan();
-      });
+      // subscription!.onDone(() {
+      //   flutterBlue.stopScan();
+      // });
+    }
+    else{
+      print("ALREADY SCANNING");
     }
   }
 
-  void stopScan() {
+  stopScan() async{
     if (isScanning) {
       isScanning = false;
-      flutterBlue.stopScan();
+      subscription?.cancel();
+      await flutterBlue.stopScan();
+    }
+    else{
+      print("ALREADY SCAN IS STOPPED");
     }
   }
 
@@ -82,6 +89,37 @@ class BluetoothControl extends ChangeNotifier
     } catch (e) {
       print('Characteristic not found');
       throw Exception('Characteristic not found');
+    }
+  }
+
+  Future<bool> connectDevice(BluetoothDevice device) async {
+    try {
+      await device.connect();
+      _recentBluetoothDevice = device;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      // Handle the error
+      print("연결실패");
+      return false;
+    }
+  }
+
+  sendMessage(String s) async{
+    BluetoothDevice? device = recentBluetoothDevice;
+    print("${device?.name}");
+    if (device != null) {
+      device.state.listen((state) async {
+        if (state == BluetoothDeviceState.connected) {
+          BluetoothCharacteristic bluetoothCharacteristic = await findCharacteristicByDevice(device, "4fafc201-1fb5-459e-8fcc-c5c9c331914b", "beb5483e-36e1-4688-b7f5-ea07361b26a8");
+          await writeCharacteristic(bluetoothCharacteristic, "0:Hello;");
+          print("test");
+        } else if (state == BluetoothDeviceState.disconnected) {
+          print("device disconnected");
+          await connectDevice(device);
+        }
+      });
+    } else {
     }
   }
 
