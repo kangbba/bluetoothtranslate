@@ -129,14 +129,15 @@ class _MainScreenState extends State<MainScreen> {
                 height: 20.0,
               ),
               bluetoothDeviceSelectBtn(context),
-              // Consumer<BluetoothControl>(
-              //   builder: (context, bluetoothControl, child) {
-              //     return Text(
-              //       bluetoothControl.recentBluetoothDevice != null ? bluetoothControl.recentBluetoothDevice!.name!
-              //           : "No recent device",
-              //       style: TextStyle(fontSize: 8),
-              //     );
-              //   },
+              Consumer<BluetoothControl>(
+                  builder: (context, bluetoothControl, child) {
+                    return Text(
+                      bluetoothControl.recentBluetoothDevice != null ? bluetoothControl.recentBluetoothDevice!.name!
+                          : "No recent device",
+                      style: TextStyle(fontSize: 8),
+                    );
+                  }
+              ),
               // ),
             ],
           ),

@@ -13,15 +13,20 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 class BluetoothControl extends ChangeNotifier
 {
   FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
-
   List<ScanResult> _scanResults = [];
-
   List<ScanResult> get scanResults => _scanResults;
+  bool isScanning = false;
+
+  BluetoothDevice? _recentBluetoothDevice;
+  BluetoothDevice? get recentBluetoothDevice => _recentBluetoothDevice;
+  set recentBluetoothDevice(BluetoothDevice? value) {
+    _recentBluetoothDevice = value;
+    notifyListeners();
+  }
 
   void initializeBluetoothControl() {
   }
 
-  bool isScanning = false;
 
   void startScan() {
     if (!isScanning) {
