@@ -33,7 +33,7 @@ class BluetoothControl extends ChangeNotifier
     await stopScan();
     if (!isScanning) {
       isScanning = true;
-      flutterBlue.startScan(timeout: Duration(seconds: 5));
+      flutterBlue.startScan();
 
       subscription = flutterBlue.scanResults.listen((results) {
         results.sort((a, b) => b.device.name.compareTo(a.device.name));
@@ -59,6 +59,7 @@ class BluetoothControl extends ChangeNotifier
     else{
       print("ALREADY SCAN IS STOPPED");
     }
+    notifyListeners();
   }
 
 
@@ -93,8 +94,18 @@ class BluetoothControl extends ChangeNotifier
   }
 
   Future<bool> connectDevice(BluetoothDevice device) async {
+    if(device == _recentBluetoothDevice)
+    {
+      print("이미 그 Device");
+      return false;
+    }
     try {
       await device.connect();
+      if(_recentBluetoothDevice != null) {
+        print("기존 연결 ${_recentBluetoothDevice!.name} Disconnect");
+        await _recentBluetoothDevice!.disconnect();
+        notifyListeners();
+      }
       _recentBluetoothDevice = device;
       notifyListeners();
       return true;

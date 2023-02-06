@@ -1,16 +1,32 @@
+
+
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionController {
   static Future<bool> checkIfBluetoothPermissionsGranted() async {
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.location, // 옛날폰 android에 필요
-      Permission.bluetooth, // 옛날폰 android에 필요
-      Permission.bluetoothConnect,
-      Permission.bluetoothScan,
-      Permission.bluetoothAdvertise,
-      Permission.locationAlways
-    ].request();
+    Map<Permission, PermissionStatus> statuses;
+    if(Platform.isIOS)
+    {
+      statuses = await [
+        Permission.location, // 옛날폰 android에 필요
+        Permission.bluetooth, // 옛날폰 android에 필요
+      ].request();
+    }
+    else{
+      statuses = await [
+        Permission.location, // 옛날폰 android에 필요
+        Permission.locationAlways,
+        Permission.locationWhenInUse,
+        Permission.bluetooth, // 옛날폰 android에 필요
+        Permission.bluetoothConnect,
+        Permission.bluetoothScan,
+        Permission.bluetoothAdvertise,
+      ].request();
+    }
+
     bool permitted = true;
     statuses.forEach((permission, permissionStatus) {
       if (!permissionStatus.isGranted) {

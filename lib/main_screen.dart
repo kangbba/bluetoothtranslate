@@ -476,12 +476,12 @@ class _MainScreenState extends State<MainScreen> {
           PermissionController.showNoPermissionSnackBar(context);
         }
         else{
-          await Navigator.of(context).push(
+          Navigator.of(context).push(
             MaterialPageRoute(
               fullscreenDialog: false,
               builder: (context) {
-                _bluetoothControl.stopScan();
                 return DeviceSelectScreen(bluetoothControl: _bluetoothControl);
+               // return TestScreen(bluetoothControl: _bluetoothControl);
               },
             ),
           );
@@ -498,7 +498,7 @@ class _MainScreenState extends State<MainScreen> {
             if (snapshot.hasData) {
               switch (snapshot.data) {
                 case BluetoothDeviceState.connected:
-                  return Icon(Icons.circle, color: Colors.green);
+                  return Icon(Icons.circle, color: Colors.greenAccent);
                   break;
                 case BluetoothDeviceState.disconnected:
                   return Icon(Icons.circle, color: Colors.red);
