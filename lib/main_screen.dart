@@ -103,7 +103,16 @@ class _MainScreenState extends State<MainScreen> {
       ],
       child: Scaffold(
         appBar: AppBar(
-          title: Align(alignment : Alignment.center, child: Text('Translate Demo')),
+          toolbarHeight: 50,
+          title: Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              children: [
+                bluetoothDeviceSelectBtn(context),
+                currentDeviceStateRamp()
+              ],
+            ),
+          ),
           backgroundColor: Colors.indigo,
         ),
         floatingActionButton:
@@ -132,7 +141,7 @@ class _MainScreenState extends State<MainScreen> {
                 height: 20.0,
               ),
               bluetoothDeviceSelectBtn(context),
-              _sendHelloTest(context),
+            //  _sendHelloTest(context),
               Consumer<BluetoothControl>(
                   builder: (context, bluetoothControl, child) {
                     return Text(
@@ -155,7 +164,7 @@ class _MainScreenState extends State<MainScreen> {
         onPressed: () async {
           await _bluetoothControl.sendMessage("0:ThisIsTest;");
         },
-        child: Icon(Icons.add));
+        child: Text("TEST"));
   }
 
 
@@ -477,6 +486,31 @@ class _MainScreenState extends State<MainScreen> {
             ),
           );
         }
+      },
+    );
+  }
+  Widget currentDeviceStateRamp() {
+    return Consumer<BluetoothControl>(
+      builder: (context, bluetoothControl, _) {
+        return StreamBuilder<BluetoothDeviceState>(
+          stream: bluetoothControl.recentBluetoothDevice?.state,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              switch (snapshot.data) {
+                case BluetoothDeviceState.connected:
+                  return Icon(Icons.circle, color: Colors.green);
+                  break;
+                case BluetoothDeviceState.disconnected:
+                  return Icon(Icons.circle, color: Colors.red);
+                  break;
+                default:
+                  return Icon(Icons.circle, color: Colors.orange);
+              }
+            } else {
+              return Icon(Icons.circle, color: Colors.yellow);
+            }
+          },
+        );
       },
     );
   }
