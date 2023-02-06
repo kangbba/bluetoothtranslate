@@ -153,7 +153,7 @@ class _MainScreenState extends State<MainScreen> {
   {
     return ElevatedButton(
         onPressed: () async {
-          await _bluetoothControl.sendMessage("0:HelloTest2;");
+          await _bluetoothControl.sendMessage("0:ThisIsTest;");
         },
         child: Icon(Icons.add));
   }
@@ -346,13 +346,20 @@ class _MainScreenState extends State<MainScreen> {
     String msg = translatedWords;
     String fullMsgToSend = '$arduinoUniqueId:$msg;';
 
-    await textToSpeechControl.changeLanguage(targetLanguageItemToUse.speechLocaleId!);
-    _onClickedTextToSpeechBtn();
     setState(() {
 
     });
-    bool sendSuccess = await _bluetoothControl.sendMessage(fullMsgToSend);
-    print("bluetooth 전송 ${sendSuccess ? '성공' : '실패'}");
+    try {
+      var result = await _bluetoothControl.sendMessage(fullMsgToSend);
+      if (!result) {
+        throw Exception("Failed to send message");
+      }
+    } catch (e) {
+      print(e);
+    }
+    await textToSpeechControl.changeLanguage(targetLanguageItemToUse.speechLocaleId!);
+    _onClickedTextToSpeechBtn();
+
   }
   Future<String> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
   {

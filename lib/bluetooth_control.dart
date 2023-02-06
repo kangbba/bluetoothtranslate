@@ -105,24 +105,24 @@ class BluetoothControl extends ChangeNotifier
     }
   }
 
-  sendMessage(String s) async{
+  sendMessage(String msg) async{
     BluetoothDevice? device = recentBluetoothDevice;
     print("${device?.name}");
+    bool success = false;
     if (device != null) {
       device.state.listen((state) async {
         if (state == BluetoothDeviceState.connected) {
           BluetoothCharacteristic bluetoothCharacteristic = await findCharacteristicByDevice(device, "4fafc201-1fb5-459e-8fcc-c5c9c331914b", "beb5483e-36e1-4688-b7f5-ea07361b26a8");
-          await writeCharacteristic(bluetoothCharacteristic, "0:Hello;");
-          print("test");
+          await writeCharacteristic(bluetoothCharacteristic, msg);
+          print("devlog 메세지 전송 성공");
+          success = true;
         } else if (state == BluetoothDeviceState.disconnected) {
-          print("device disconnected");
+          print("devlog 메세지 전송 실패");
           await connectDevice(device);
         }
       });
-    } else {
     }
+    return success;
   }
-
-
 
 }
