@@ -104,14 +104,13 @@ class _MainScreenState extends State<MainScreen> {
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: 50,
-          title: Align(
-            alignment: Alignment.centerRight,
-            child: Row(
-              children: [
-                bluetoothDeviceSelectBtn(context),
-                currentDeviceStateRamp()
-              ],
-            ),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              bluetoothDeviceSelectBtn(context),
+              SizedBox(width: 8,),
+              currentDeviceStateRamp()
+            ],
           ),
           backgroundColor: Colors.indigo,
         ),
@@ -140,18 +139,6 @@ class _MainScreenState extends State<MainScreen> {
               SizedBox(
                 height: 20.0,
               ),
-              bluetoothDeviceSelectBtn(context),
-            //  _sendHelloTest(context),
-              Consumer<BluetoothControl>(
-                  builder: (context, bluetoothControl, child) {
-                    return Text(
-                      bluetoothControl.recentBluetoothDevice != null ? bluetoothControl.recentBluetoothDevice!.name!
-                          : "No recent device",
-                      style: TextStyle(fontSize: 8),
-                    );
-                  }
-              ),
-              // ),
             ],
           ),
         ),
@@ -475,17 +462,15 @@ class _MainScreenState extends State<MainScreen> {
         if (!hasPermission) {
           PermissionController.showNoPermissionSnackBar(context);
         }
-        else{
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              fullscreenDialog: false,
-              builder: (context) {
-                return DeviceSelectScreen(bluetoothControl: _bluetoothControl);
-               // return TestScreen(bluetoothControl: _bluetoothControl);
-              },
-            ),
-          );
-        }
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            fullscreenDialog: false,
+            builder: (context) {
+              return DeviceSelectScreen(bluetoothControl: _bluetoothControl);
+             // return TestScreen(bluetoothControl: _bluetoothControl);
+            },
+          ),
+        );
       },
     );
   }
@@ -495,20 +480,31 @@ class _MainScreenState extends State<MainScreen> {
         return StreamBuilder<BluetoothDeviceState>(
           stream: bluetoothControl.recentBluetoothDevice?.state,
           builder: (context, snapshot) {
+            Color rampColor;
+            String deviceName = bluetoothControl.recentBluetoothDevice?.name ?? "";
+            double iconSize = 15;
             if (snapshot.hasData) {
               switch (snapshot.data) {
                 case BluetoothDeviceState.connected:
-                  return Icon(Icons.circle, color: Colors.greenAccent);
+                  rampColor = Colors.lightGreenAccent;
                   break;
                 case BluetoothDeviceState.disconnected:
-                  return Icon(Icons.circle, color: Colors.red);
+                  rampColor = Colors.red;
                   break;
                 default:
-                  return Icon(Icons.circle, color: Colors.orange);
+                  rampColor = Colors.orange;
               }
             } else {
-              return Icon(Icons.circle, color: Colors.yellow);
+              rampColor = Colors.yellow;
             }
+            return Column(
+              children: [
+                bluetoothControl.recentBluetoothDevice != null ? SizedBox(height: 2,) : Container(),
+                Icon(Icons.circle, color: rampColor, size: iconSize,),
+                bluetoothControl.recentBluetoothDevice != null ? SizedBox(height: 2,) : Container(),
+                bluetoothControl.recentBluetoothDevice != null ? Text(deviceName, style: TextStyle(fontSize: 8, color: Colors.white), textAlign: TextAlign.center,): Container(),
+              ],
+            );
           },
         );
       },

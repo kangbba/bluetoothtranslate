@@ -51,7 +51,7 @@ class PermissionController {
   }
   static void showNoPermissionSnackBar(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('권한이 허용되지 않아서 사용할 수 없습니다.'),
+      content: Text('권한이 허용되지 않으니 참고'),
       action: SnackBarAction(
         label: '설정창으로 이동',
         onPressed: () => openAppSettings(),

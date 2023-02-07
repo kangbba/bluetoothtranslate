@@ -32,7 +32,7 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
           ),
         ],
         child: Container(
-          color: Colors.cyan,
+          color: Colors.indigo[100],
           height: screenSize.height,
           child: Consumer<BluetoothControl>(
               builder: (context, bluetoothControl, child) {
