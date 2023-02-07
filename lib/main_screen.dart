@@ -460,7 +460,7 @@ class _MainScreenState extends State<MainScreen> {
       onPressed: () async {
         bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
         if (!hasPermission) {
-          PermissionController.showNoPermissionSnackBar(context);
+          print("권한에 문제가있음");
         }
         Navigator.of(context).push(
           MaterialPageRoute(
