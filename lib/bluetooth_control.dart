@@ -31,19 +31,24 @@ class BluetoothControl extends ChangeNotifier
 
   void startScan() async{
     await stopScan();
+    notifyListeners();
     if (!isScanning) {
       isScanning = true;
-      flutterBlue.startScan();
+      flutterBlue.startScan(scanMode: ScanMode.balanced);
+      _scanResults.clear();
 
       subscription = flutterBlue.scanResults.listen((results) {
         results.sort((a, b) => b.device.name.compareTo(a.device.name));
         _scanResults = results;
+
+
+        for (var result in results) {
+          if(result.device.name.isNotEmpty)
+            print("새로운 디바이스 발견 : ${result.device.name}");
+        }
         notifyListeners();
       });
-
-      // subscription!.onDone(() {
-      //   flutterBlue.stopScan();
-      // });
+      notifyListeners();
     }
     else{
       print("ALREADY SCANNING");
@@ -100,18 +105,19 @@ class BluetoothControl extends ChangeNotifier
       return false;
     }
     try {
-      await device.connect();
       if(_recentBluetoothDevice != null) {
         print("기존 연결 ${_recentBluetoothDevice!.name} Disconnect");
         await _recentBluetoothDevice!.disconnect();
         notifyListeners();
       }
       _recentBluetoothDevice = device;
+      await device.connect();
       notifyListeners();
       return true;
     } catch (error) {
       // Handle the error
-      print("연결실패");
+      print("연결실패 $error");
+
       return false;
     }
   }

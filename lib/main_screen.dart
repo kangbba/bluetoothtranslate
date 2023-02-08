@@ -121,23 +121,36 @@ class _MainScreenState extends State<MainScreen> {
           padding: EdgeInsets.all(20.0),
           child: Column(
             children: <Widget>[
+              _translateFieldInput(screenSize.height / 5),
+              SimpleSeparator(color: Colors.grey, height: 1, top: 0, bottom: 0),
+              _translatedTextDescriptions(),
+              _translateFieldOutput(screenSize.height / 5),
+              SimpleSeparator(color: Colors.grey,height: 1, top: 5, bottom: 0),
+              SizedBox(
+                height: 20.0,
+              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   _dropdownMenuInput(),
-                  SizedBox(
-                    width: 20.0,
+                  InkWell(
+                    onTap: (){
+                      var tmp = currentSourceLanguageItem;
+                      currentSourceLanguageItem = currentTargetLanguageItem;
+                      currentTargetLanguageItem = tmp;
+
+                      onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
+                      onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.arrow_back, size: 14,),
+                        Icon(Icons.arrow_forward, size: 14,),
+                      ],
+                    ),
                   ),
                   _dropdownMenuOutput(),
                 ],
-              ),
-              _translateFieldInput(screenSize.height / 5),
-              SimpleSeparator(height: 1, top: 0, bottom: 0),
-              _translatedTextDescriptions(),
-              _translateFieldOutput(screenSize.height / 5),
-              SimpleSeparator(height: 1, top: 5, bottom: 0),
-              SizedBox(
-                height: 20.0,
               ),
             ],
           ),
@@ -299,6 +312,7 @@ class _MainScreenState extends State<MainScreen> {
 
     print("startListening");
     speechToTextControl.isListening = true;
+    print(speechToTextControl.speechToText);
     await speechToTextControl.speechToText.listen(
       localeId: speechToTextControl.currentLocaleId,
       onResult: (result) async {
@@ -306,14 +320,13 @@ class _MainScreenState extends State<MainScreen> {
         print("SpeechToText 듣는중 : $result");
         if(result.finalResult)
         {
-          await stopListening();
           await whenSpeechEnd(speechToTextControl.recentRecognizedWords);
         }
         else{
           inputTextEditController.text = speechToTextControl.recentRecognizedWords;
         }
       },
-    );
+    ).then((value) => stopListening());
   }
   stopListening() async{
     print("endListening");
@@ -400,43 +413,27 @@ class _MainScreenState extends State<MainScreen> {
 // if(readyForTranslate) {
 //
 
-  Expanded _dropdownMenuInput() {
-    return Expanded(
-      child: DropdownButton(
-        items: languageDatas.languageMenuItems,
-        value: currentSourceLanguageItem.menuDisplayStr,
-        onChanged: (value) async{
-          LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
-          await onSelectedSourceDropdownMenuItem(languageItem);
-          setState(() {
-          });
-        },
-        icon: Align(
-          alignment: Alignment.centerRight,
-          child: Icon(Icons.arrow_drop_down,
-            textDirection: TextDirection.rtl,
-          ),
-        ),
-      ),
+  Widget _dropdownMenuInput() {
+    return DropdownButton(
+      items: languageDatas.languageMenuItems,
+      value: currentSourceLanguageItem.menuDisplayStr,
+      onChanged: (value) async{
+        LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+        await onSelectedSourceDropdownMenuItem(languageItem);
+        setState(() {
+        });
+      },
     );
   }
-  Expanded _dropdownMenuOutput() {
-    return Expanded(
-      child: DropdownButton(
-        items: languageDatas.languageMenuItems,
-        value: currentTargetLanguageItem.menuDisplayStr,
-        onChanged: (value) async{
-          LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
-          onSelectedTargetDropdownMenuItem(languageItem);
-          setState(() {});
-        },
-        icon: Align(
-          alignment: Alignment.centerRight,
-          child: Icon(Icons.arrow_drop_down,
-            textDirection: TextDirection.rtl,
-          ),
-        ),
-      ),
+  Widget _dropdownMenuOutput() {
+    return DropdownButton(
+      items: languageDatas.languageMenuItems,
+      value: currentTargetLanguageItem.menuDisplayStr,
+      onChanged: (value) async{
+        LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+        onSelectedTargetDropdownMenuItem(languageItem);
+        setState(() {});
+      },
     );
   }
 
@@ -458,18 +455,16 @@ class _MainScreenState extends State<MainScreen> {
       child: Icon(Icons.bluetooth_searching),
       style: standardBtnStyle(),
       onPressed: () async {
+        _bluetoothControl.startScan();
         bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
         if (!hasPermission) {
           PermissionController.showNoPermissionSnackBar(context);
         }
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            fullscreenDialog: false,
-            builder: (context) {
-              return DeviceSelectScreen(bluetoothControl: _bluetoothControl);
-             // return TestScreen(bluetoothControl: _bluetoothControl);
-            },
-          ),
+        showModalBottomSheet(
+          context: context,
+          builder: (context) {
+            return DeviceSelectScreen(bluetoothControl: _bluetoothControl);
+          },
         );
       },
     );

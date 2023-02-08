@@ -18,8 +18,6 @@ class PermissionController {
     else{
       statuses = await [
         Permission.location, // 옛날폰 android에 필요
-        Permission.locationAlways,
-        Permission.locationWhenInUse,
         Permission.bluetooth, // 옛날폰 android에 필요
         Permission.bluetoothConnect,
         Permission.bluetoothScan,
