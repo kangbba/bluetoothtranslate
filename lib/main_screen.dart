@@ -458,7 +458,7 @@ class _MainScreenState extends State<MainScreen> {
         _bluetoothControl.startScan();
         bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
         if (!hasPermission) {
-          PermissionController.showNoPermissionSnackBar(context);
+          print("권한에 문제가있음");
         }
         showModalBottomSheet(
           context: context,
