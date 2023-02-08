@@ -67,7 +67,7 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
                         ),
                         Expanded(
                           flex: 1,
-                          child : bondedDevice(bluetoothControl),
+                          child : deviceListView_connected(bluetoothControl),
                         ),
                         Expanded(
                             flex: 4,
@@ -136,46 +136,42 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
       return Icon(Icons.signal_cellular_no_sim_outlined, size: 15,);
     }
   }
-  Widget bondedDevice(BluetoothControl bluetoothControl){
-    return FutureBuilder<List<BluetoothDevice>>(
-      future: bluetoothControl.flutterBlue.bondedDevices,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return ListView.builder(
-            itemCount: snapshot.data!.length,
-            itemBuilder: (context, index) {
-              BluetoothDevice device = snapshot.data![index];
-              return ListTile(
-                title: Text(device.name),
-                subtitle: Text(device.id.toString()),
-              );
-            },
-          );
-        } else {
-          return Text('No Bonded Devices');
+
+  Widget connectedDeviceListTile(BuildContext context, BluetoothControl bluetoothControl, BluetoothDevice device) {
+    return Card(
+      child: ListTile(
+        title: Text(device.name.isNotEmpty ? device.name : "Unknown", style: contentTextStyle(15,Colors.black87),),
+        subtitle: Text(device.id.toString(), style: contentTextStyle(10,Colors.black38),),
+        trailing: Icon(Icons.check),
+        onTap : () async {
+          await onClickedConnectDevice(context, bluetoothControl, device);
         }
-      },
+      ),
     );
   }
-
   Widget deviceListTile(BuildContext context, BluetoothControl bluetoothControl, ScanResult result) {
     return StreamBuilder<BluetoothDeviceState>(
       stream: result.device.state,
       builder: (context, snapshot) {
         return Card(
-          child: ListTile(
-            title: Text(result.device.name.isNotEmpty ? result.device.name : "Unknown", style: contentTextStyle(15,Colors.black87),),
-            subtitle: Text(result.device.id.toString(), style: contentTextStyle(10,Colors.black38),),
-            trailing: getRssiIcon(result),
-            onTap: () async {
-              simpleLoadingDialog(context, "title");
-              await bluetoothControl.connectDevice(result.device);
-              Navigator.of(context).pop();
-            },
-          ),
+            child: ListTile(
+                title: Text(result.device.name.isNotEmpty ? result.device.name : "Unknown", style: contentTextStyle(15,Colors.black87),),
+                subtitle: Text(result.device.id.toString(), style: contentTextStyle(10,Colors.black38),),
+                trailing: getRssiIcon(result),
+                onTap: () async {
+                  await onClickedConnectDevice(context, bluetoothControl, result.device);
+                })
         );
-      }
+      },
     );
+  }
+  onClickedConnectDevice(BuildContext context, BluetoothControl bluetoothControl, BluetoothDevice device) async
+  {
+    simpleLoadingDialog(context, "title");
+    bluetoothControl.connectDevice(device).then((value) {
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+    });
   }
 
   Widget infoBtn(BuildContext context, BluetoothDevice device)
@@ -184,7 +180,6 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
       icon: Icon(Icons.info),
       onPressed: () async {
         await _showDeviceInfo(context, device);
-
       },
     );
   }
@@ -256,7 +251,13 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
       },
     );
   }Widget deviceListView_connected(BluetoothControl bluetoothControl) {
-    return Container();
+    return ListView.builder(
+        shrinkWrap: true,
+        itemCount: bluetoothControl.connectedDevices.length,
+        itemBuilder: (context, index) {
+          return connectedDeviceListTile(
+              context, bluetoothControl, bluetoothControl.connectedDevices[index]);
+        });
   }
 
 

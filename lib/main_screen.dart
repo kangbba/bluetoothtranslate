@@ -14,6 +14,7 @@ import 'package:bluetoothtranslate/test_screen.dart';
 import 'package:bluetoothtranslate/text_to_speech_control.dart';
 import 'package:bluetoothtranslate/translage_by_papagoserver.dart';
 import 'package:bluetoothtranslate/translate_by_googleserver.dart';
+import 'package:connectivity_wrapper/connectivity_wrapper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:bluetoothtranslate/translate_by_googledevice.dart';
@@ -56,9 +57,8 @@ class _MainScreenState extends State<MainScreen> {
   TextEditingController outputTextEditController = TextEditingController();
 
 
-  late LanguageItem currentSourceLanguageItem;
-  late LanguageItem currentTargetLanguageItem;
-
+  late LanguageItem currentSourceLanguageItem = languageDatas.languageItems[0];
+  late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[5];
 
 
   @override
@@ -67,8 +67,6 @@ class _MainScreenState extends State<MainScreen> {
     languageDatas.initializeLanguageDatas();
     _bluetoothControl.initializeBluetoothControl();
 
-    currentSourceLanguageItem = languageDatas.languageItems[0];
-    currentTargetLanguageItem = languageDatas.languageItems[2];
     onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
     onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
 
@@ -287,23 +285,31 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
           onPressed: () async{
-            bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
-            if (!hasPermission) {
-              PermissionController.showNoPermissionSnackBar(context);
-            }
-            else {
-              if (speechToTextControl.isListening) {
-                await stopListening();
-              } else {
-                await startListening();
+
+            if (await ConnectivityWrapper.instance.isConnected) {
+              bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
+              if (!hasPermission) {
+                PermissionController.showNoPermissionSnackBar(context);
               }
-              setState(() {});
+              else {
+                if (speechToTextControl.isListening) {
+                  await stopListening();
+                } else {
+                  await startListening();
+                }
+                setState(() {});
+              }
+            }
+            else{
+              showSimpleSnackBar(context, "인터넷연결안되었어요", 1);
             }
           },
         );
       },
     );
   }
+
+
   startListening() async{
 
     inputTextEditController.text = '';
@@ -320,18 +326,20 @@ class _MainScreenState extends State<MainScreen> {
         print("SpeechToText 듣는중 : $result");
         if(result.finalResult)
         {
-          await whenSpeechEnd(speechToTextControl.recentRecognizedWords);
+          stopListening();
         }
         else{
           inputTextEditController.text = speechToTextControl.recentRecognizedWords;
         }
       },
-    ).then((value) => stopListening());
+    ).then((value) async{
+    });
   }
   stopListening() async{
     print("endListening");
     speechToTextControl.isListening = false;
     await speechToTextControl.speechToText.stop();
+    await whenSpeechEnd(speechToTextControl.recentRecognizedWords);
   }
   whenSpeechEnd(String recentRecognizedWords) async
   {

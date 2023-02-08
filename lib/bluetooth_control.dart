@@ -18,6 +18,8 @@ class BluetoothControl extends ChangeNotifier
   bool isScanning = false;
 
   StreamSubscription<List<ScanResult>>? subscription;
+
+
   BluetoothDevice? _recentBluetoothDevice;
   BluetoothDevice? get recentBluetoothDevice => _recentBluetoothDevice;
   set recentBluetoothDevice(BluetoothDevice? value) {
@@ -25,11 +27,20 @@ class BluetoothControl extends ChangeNotifier
     notifyListeners();
   }
 
+  List<BluetoothDevice> _connectedDevices = [];
+  List<BluetoothDevice> get connectedDevices => _connectedDevices;
+  set connectedDevices(List<BluetoothDevice> value)
+  {
+    _connectedDevices = value;
+    notifyListeners();
+  }
   void initializeBluetoothControl() {
   }
 
 
   void startScan() async{
+    _connectedDevices = await flutterBlue.connectedDevices;
+    notifyListeners();
     await stopScan();
     notifyListeners();
     if (!isScanning) {
