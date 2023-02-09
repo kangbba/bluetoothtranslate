@@ -60,7 +60,9 @@ class _MainScreenState extends State<MainScreen> {
   late LanguageItem currentSourceLanguageItem = languageDatas.languageItems[0];
   late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[5];
 
-
+  void refresh() {
+    setState(() {});
+  }
   @override
   void initState() {
     super.initState();
@@ -101,7 +103,6 @@ class _MainScreenState extends State<MainScreen> {
       ],
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: 50,
           title: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -156,16 +157,6 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-  Widget _sendHelloTest(BuildContext context)
-  {
-    return ElevatedButton(
-        onPressed: () async {
-          await _bluetoothControl.sendMessage("0:ThisIsTest;");
-        },
-        child: Text("TEST"));
-  }
-
-
 
   Widget _translatedTextDescriptions()
   {
@@ -301,14 +292,13 @@ class _MainScreenState extends State<MainScreen> {
               }
             }
             else{
-              showSimpleSnackBar(context, "인터넷연결안되었어요", 1);
+              showSimpleSnackBar(context, "인터넷 연결 안되었어요", 1);
             }
           },
         );
       },
     );
   }
-
 
   startListening() async{
 
@@ -348,16 +338,33 @@ class _MainScreenState extends State<MainScreen> {
     LanguageItem targetLanguageItemToUse = currentTargetLanguageItem;
 
     bool isContainChina = (sourceLanguageItemToUse.translateLanguage == TranslateLanguage.chinese) || (targetLanguageItemToUse.translateLanguage == TranslateLanguage.chinese);
-    TranslateTool translateToolToUse = isContainChina ? TranslateTool.papagoServer : TranslateTool.googleServer;
 
-    String translatedWords = await _translateTextWithCurrentLanguage(recentRecognizedWords, translateToolToUse);
+    List<TranslateTool> trToolsOrderStandard = [TranslateTool.googleServer, TranslateTool.papagoServer, TranslateTool.googleDevice];
+    List<TranslateTool> trToolsOrderChina = [TranslateTool.papagoServer, TranslateTool.googleDevice, TranslateTool.googleServer];
 
+    List<TranslateTool> trToolsToUse = isContainChina ? trToolsOrderChina : trToolsOrderStandard;
+    TranslateTool? translateTool;
+    String? translatedWords;
+    for(int i = 0 ; i < trToolsToUse.length ; i++)
+    {
+      translateTool = trToolsToUse[i];
+      translatedWords = await _translateTextWithCurrentLanguage(recentRecognizedWords, translateTool);
+      if(translatedWords != null)
+      {
+        print("정상 응답 발견");
+        break;
+      }
+    }
+    if(translatedWords == null)
+    {
+      print("번역 실패 : translatedWords is null");
+      return;
+    }
     print("_lastTranslatedStr : $translatedWords");
     outputTextEditController.text = translatedWords;
-
     _lastTranslatedStr = translatedWords;
     _lastTranslatedLanguageItem = targetLanguageItemToUse;
-    _lastTranslatedTool = translateToolToUse;
+    _lastTranslatedTool = translateTool;
 
     int arduinoUniqueId = targetLanguageItemToUse.arduinoUniqueId!;
     String msg = translatedWords;
@@ -366,32 +373,37 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
 
     });
-    try {
-      var result = await _bluetoothControl.sendMessage(fullMsgToSend);
-      if (!result) {
-        throw Exception("Failed to send message");
+    BluetoothDevice? connectedDevice = _bluetoothControl.connectedDevice;
+    if(connectedDevice == null)
+    {
+      showSimpleSnackBar(context, "먼저 블루투스 기기에 연결해주세요", 1) ;
+    }
+    else{
+      try {
+        var result = await _bluetoothControl.sendMessage(connectedDevice, fullMsgToSend);
+        if (!result) {
+          throw Exception("Failed to send message");
+        }
+      } catch (e) {
+        print(e);
       }
-    } catch (e) {
-      print(e);
     }
     await textToSpeechControl.changeLanguage(targetLanguageItemToUse.speechLocaleId!);
     _onClickedTextToSpeechBtn();
-
   }
-  Future<String> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
+  Future<String?> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
   {
     print("translateTool $translateTool 를 이용해 번역 시도합니다.");
-    String finalStr = "";
+    String? finalStr;
     switch(translateTool)
     {
       case TranslateTool.googleDevice:
         translateByGoogleDevice.changeTranslateApiLanguage(currentSourceLanguageItem.translateLanguage, currentTargetLanguageItem.translateLanguage);
-        final translatedText = await translateByGoogleDevice.textTranslate(inputStr);
-        finalStr = translatedText;
+        finalStr = await translateByGoogleDevice.textTranslate(inputStr);
         break;
       case TranslateTool.papagoServer:
-        final translatedText = await  translateByPapagoServer.textTranslate(inputStr, currentSourceLanguageItem.langCodeByPapagoServer!, currentTargetLanguageItem.langCodeByPapagoServer!);
-        finalStr = translatedText;
+        String papagoStr = 'zh-CN';
+        finalStr = await translateByPapagoServer.textTranslate(inputStr, papagoStr, currentTargetLanguageItem.langCodeByPapagoServer!);
         break;
       case TranslateTool.googleServer:
         String from =  currentSourceLanguageItem.langCodeByGoogleTranslateByServer!;
@@ -400,7 +412,7 @@ class _MainScreenState extends State<MainScreen> {
         finalStr = translationModel.translatedText;
         break;
     }
-    return finalStr;
+    return (finalStr == null) ? null : finalStr;
   }
 
   onSelectedSourceDropdownMenuItem(LanguageItem languageItem) {
@@ -481,10 +493,10 @@ class _MainScreenState extends State<MainScreen> {
     return Consumer<BluetoothControl>(
       builder: (context, bluetoothControl, _) {
         return StreamBuilder<BluetoothDeviceState>(
-          stream: bluetoothControl.recentBluetoothDevice?.state,
+          stream: bluetoothControl.connectedDevice?.state,
           builder: (context, snapshot) {
             Color rampColor;
-            String deviceName = bluetoothControl.recentBluetoothDevice?.name ?? "";
+            String deviceName = bluetoothControl.connectedDevice?.name ?? "";
             double iconSize = 15;
             if (snapshot.hasData) {
               switch (snapshot.data) {
@@ -502,10 +514,10 @@ class _MainScreenState extends State<MainScreen> {
             }
             return Column(
               children: [
-                bluetoothControl.recentBluetoothDevice != null ? SizedBox(height: 2,) : Container(),
+                bluetoothControl.connectedDevice != null ? SizedBox(height: 2,) : Container(),
                 Icon(Icons.circle, color: rampColor, size: iconSize,),
-                bluetoothControl.recentBluetoothDevice != null ? SizedBox(height: 2,) : Container(),
-                bluetoothControl.recentBluetoothDevice != null ? Text(deviceName, style: TextStyle(fontSize: 8, color: Colors.white), textAlign: TextAlign.center,): Container(),
+                bluetoothControl.connectedDevice != null ? SizedBox(height: 2,) : Container(),
+                bluetoothControl.connectedDevice != null ? Text(deviceName, style: TextStyle(fontSize: 8, color: Colors.white), textAlign: TextAlign.center,): Container(),
               ],
             );
           },

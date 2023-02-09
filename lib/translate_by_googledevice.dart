@@ -67,12 +67,13 @@ class TranslateByGoogleDevice {
   }
 
   // TODO: Translate 관련 함수들
-  Future<String> textTranslate(String textToTranslate) async {
+  Future<String?> textTranslate(String textToTranslate) async {
     final result = await _onDeviceTranslator.translateText(textToTranslate);
     if (result.isNotEmpty) {
       return result;
     } else {
-      return 'Failed to translate text';
+      'Failed to translate text';
+      return null;
     }
   }
   Future<bool> getLanguageDownloaded(TranslateLanguage translateLanguage) async

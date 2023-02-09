@@ -32,7 +32,7 @@ class TranslateByPapagoServer
       throw("언어감지 실패");
     }
   }
-  Future<String> _translate(String content, String sourceCode, String targetCode) async {
+  Future<String?> _translate(String content, String sourceCode, String targetCode) async {
     String _client_id = naverAPIKey;
     String _client_secret = naverAPISecret;
     String _content_type = "application/x-www-form-urlencoded; charset=UTF-8";
@@ -58,12 +58,13 @@ class TranslateByPapagoServer
     }
     else {
       print('error ${trans.statusCode}');
-      return '';
+      print('error ${trans}');
+      return null;
     }
   }
-  Future<String> textTranslate(String inputStr, String sourceLanguageCode, String targetLanguageCode) async
+  Future<String?> textTranslate(String inputStr, String sourceLanguageCode, String targetLanguageCode) async
   {
-    String translatedStr = await _translate(inputStr, sourceLanguageCode, targetLanguageCode);
+    String? translatedStr = await _translate(inputStr, sourceLanguageCode, targetLanguageCode);
     return translatedStr;
   }
 
