@@ -9,7 +9,7 @@ simpleLoadingDialog(BuildContext context, String title) async {
       return Container(
         color: Colors.black54,
         child: Center(
-          child:  LoadingAnimationWidget.fourRotatingDots(size: 50, color: Colors.indigoAccent)
+          child:  LoadingAnimationWidget.fourRotatingDots(size: 50, color: Colors.deepPurpleAccent)
         ),
       );
     },

@@ -49,7 +49,6 @@ class _MainScreenState extends State<MainScreen> {
   final SpeechToTextControl speechToTextControl = SpeechToTextControl();
   final TextToSpeechControl textToSpeechControl = TextToSpeechControl();
 
-
   String _lastTranslatedStr = '';
   LanguageItem? _lastTranslatedLanguageItem = null;
   TranslateTool? _lastTranslatedTool = null;
@@ -58,7 +57,7 @@ class _MainScreenState extends State<MainScreen> {
 
 
   late LanguageItem currentSourceLanguageItem = languageDatas.languageItems[0];
-  late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[5];
+  late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[3];
 
   void refresh() {
     setState(() {});
@@ -111,7 +110,8 @@ class _MainScreenState extends State<MainScreen> {
               currentDeviceStateRamp()
             ],
           ),
-          backgroundColor: Colors.indigo,
+          toolbarHeight: 70,
+          backgroundColor: Colors.deepPurple[900],
         ),
         floatingActionButton:
         _audioRecordBtn(context),
@@ -181,7 +181,7 @@ class _MainScreenState extends State<MainScreen> {
             _onClickedTextToSpeechBtn();
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.indigoAccent,
+            backgroundColor: Colors.deepPurpleAccent,
             padding: EdgeInsets.zero,
             shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(6.0))),
           child: Icon(
@@ -459,7 +459,7 @@ class _MainScreenState extends State<MainScreen> {
   ButtonStyle standardBtnStyle()
   {
     return ElevatedButton.styleFrom(
-        backgroundColor: Colors.indigoAccent,
+        backgroundColor: Colors.indigo,
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(6.0)));
   }

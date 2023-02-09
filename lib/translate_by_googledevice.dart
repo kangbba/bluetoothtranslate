@@ -16,39 +16,35 @@ class TranslateByGoogleDevice {
   // TODO: 기본함수
   initializeTranslateByGoogleDevice()
   {
-
+    downloadLanguageIfNeeded(TranslateLanguage.chinese);
   }
 
-  Future<bool> downloadLanguageIfNeeded(BuildContext context, LanguageItem languageItem) async
+  Future<bool> downloadLanguageIfNeeded(TranslateLanguage translateLanguage) async
   {
-    TranslateLanguage translateLanguage = languageItem.translateLanguage!;
     final bool isDownloaded = await getLanguageDownloaded(translateLanguage);
     bool readyForTranslated = isDownloaded;
     print("선택시 download 상태 : $isDownloaded");
 
     if (!isDownloaded) {
-      simpleLoadingDialog(
-          context, "${languageItem.menuDisplayStr}을 다운로드 중입니다. 잠시 기다려주세요.");
       String resultStr = await downloadLanguage(translateLanguage, 10);
       switch (resultStr) {
         case "SUCCESS" :
           readyForTranslated = true;
-          showSimpleSnackBar(context, "다운로드 성공!!", 1);
+          print("다운로드 성공!!");
           break;
         case "FAIL" :
           readyForTranslated = false;
-          showSimpleSnackBar(context, "다운로드 실패!!", 1);
+          print("다운로드 실패!!");
           break;
         case "ALREADY_EXIST" :
           readyForTranslated = true;
-          showSimpleSnackBar(context, "이미 다운로드 됨", 1);
+          print("이미 다운로드 됨");
           break;
         default:
           readyForTranslated = false;
           print(resultStr);
           break;
       }
-      Navigator.of(context).pop();
     }
     return readyForTranslated;
   }

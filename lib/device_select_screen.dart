@@ -61,7 +61,7 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
                               style: TextStyle(fontSize: 16, color: Colors.black87),
                               textAlign: TextAlign.center),
                         ),
-                        SimpleSeparator(color: Colors.indigoAccent, height: .2, top: 0, bottom: 8),
+                        SimpleSeparator(color: Colors.deepPurpleAccent, height: .2, top: 0, bottom: 8),
                         deviceListView_selected(bluetoothControl),
                         SizedBox(height: 10,),
                         Expanded(
@@ -281,7 +281,7 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(width: 10),
-            bluetoothControl.isScanning ? LoadingAnimationWidget.prograssiveDots(size: 20, color: Colors.indigo, ) : Container(),
+            bluetoothControl.isScanning ? LoadingAnimationWidget.prograssiveDots(size: 20, color: Colors.deepPurple, ) : Container(),
           ],
         ),
       );
