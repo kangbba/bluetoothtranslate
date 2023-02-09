@@ -10,11 +10,37 @@ import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
+enum DeviceStatus{
+  connectedDevice,
+  scannedDevice
+}
+class DeviceForm extends ChangeNotifier
+{
+  late DeviceStatus _deviceStatus;
+  late BluetoothDevice _device;
+  late int? _rssi;
+
+  DeviceStatus get deviceStatus => _deviceStatus;
+  BluetoothDevice get device => _device;
+  int? get rssi => _rssi;
+
+  DeviceForm(DeviceStatus deviceStatus, BluetoothDevice device, int? rssi)
+  {
+    _deviceStatus = deviceStatus;
+    _device = device;
+    _rssi = rssi;
+    notifyListeners();
+  }
+
+  void setDeviceStatus(DeviceStatus deviceStatus)
+  {
+    _deviceStatus = deviceStatus;
+    notifyListeners();
+  }
+}
 class BluetoothControl extends ChangeNotifier
 {
   FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
-  List<ScanResult> _scanResults = [];
-  List<ScanResult> get scanResults => _scanResults;
   bool isScanning = false;
   // BluetoothDevice? _recentBluetoothDevice;
   // BluetoothDevice? get recentBluetoothDevice => _recentBluetoothDevice;
@@ -22,14 +48,18 @@ class BluetoothControl extends ChangeNotifier
   //   _recentBluetoothDevice = value;
   //   notifyListeners();
   // }
+  List<DeviceForm> _deviceForms = [];
 
-  List<BluetoothDevice> _connectedDevices = [];
-
-  BluetoothDevice? get connectedDevice
+  List<DeviceForm> get deviceForms
   {
-    return _connectedDevice;
+    return _deviceForms;
   }
-  BluetoothDevice? _connectedDevice;
+
+  DeviceForm? get selectedDeviceForm
+  {
+    return _selectedDeviceForm;
+  }
+  DeviceForm? _selectedDeviceForm;
 
   void initializeBluetoothControl() {
   }
@@ -44,23 +74,29 @@ class BluetoothControl extends ChangeNotifier
       flutterBlue.startScan(scanMode: ScanMode.balanced, timeout: Duration(seconds: 4)).then((value) {
         stopScan();
       });
-      _scanResults.clear();
+      _deviceForms.clear();
+      List<BluetoothDevice> connectedDevices = await flutterBlue.connectedDevices;
+      for(int i = 0 ; i < connectedDevices.length ; i++)
+      {
+        if(connectedDevices[i] != _selectedDeviceForm?.device)
+          _deviceForms.add(DeviceForm(DeviceStatus.connectedDevice, connectedDevices[i], null));
+      }
       notifyListeners();
       var subscription = flutterBlue.scanResults.listen((results) {
-        results.sort((a, b) {
-          if (a.device.name.isNotEmpty && b.device.name.isNotEmpty) {
-            return b.device.name.compareTo(a.device.name);
-          } else if (a.device.name.isNotEmpty) {
-            return -1;
-          } else if (b.device.name.isNotEmpty) {
-            return 1;
-          } else {
-            return 0;
+          for (var i = 0; i < results.length; i++) {
+            var alreadyConnected = false;
+            for (var j = 0; j < _deviceForms.length; j++) {
+              if (_deviceForms[j]._device.id == results[i].device.id) {
+                alreadyConnected = true;
+                break;
+              }
+            }
+            if (!alreadyConnected) {
+              _deviceForms.add(DeviceForm(DeviceStatus.scannedDevice, results[i].device, results[i].rssi));
+              notifyListeners();
+            }
           }
         });
-        _scanResults = results;
-        notifyListeners();
-      });
       notifyListeners();
     }
     else{
@@ -109,40 +145,53 @@ class BluetoothControl extends ChangeNotifier
     }
   }
 
-  Future<bool> connectDevice(BluetoothDevice device, int timeout) async {
-    if(_connectedDevice != null && _connectedDevice == device)
+  Future<bool> connectDevice(DeviceForm deviceForm, int timeout) async {
+    BluetoothDevice device = deviceForm.device;
+    if(deviceForm.deviceStatus == DeviceStatus.connectedDevice)
     {
-      print("같은 기기입니다");
-      return false;
+      _selectedDeviceForm = deviceForm;
+      notifyListeners();
+      return true;
     }
-    else {
-      if (_connectedDevice != null) // 기존기기가 있을경우 미리 끊어주는 작업 선행
-          {
+    else
+    {
+      if(_selectedDeviceForm != null && _selectedDeviceForm!.device == device)
+      {
+        print("같은 기기입니다");
+        return false;
+      }
+      else {
+        if (_selectedDeviceForm != null) // 기존기기가 있을경우 미리 끊어주는 작업 선행
+            {
+          try {
+            print("연결된 디바이스 연결해제 시도합니다.");
+            await _selectedDeviceForm!.device.disconnect(); // 연결해제
+            _selectedDeviceForm!.setDeviceStatus(DeviceStatus.scannedDevice);
+            _selectedDeviceForm = null;
+            print("연결된 디바이스 연결해제 성공");
+            notifyListeners();
+          }
+          catch (e) {
+            print("이미 연결된 디바이스 연결해제 실패. $e");
+            return false;
+          }
+        }
+        // 새로운 기기 연결
         try {
-          print("연결된 디바이스 연결해제 시도합니다.");
-          await _connectedDevice!.disconnect(); // 연결해제
-          _connectedDevice = null;
-          print("연결된 디바이스 연결해제 성공");
+          await device.connect(timeout: Duration(seconds: timeout));
+          print("새로운 디바이스에 연결 성공");
+          _selectedDeviceForm = deviceForm; // 연결성공시 할당.
+          _selectedDeviceForm!.setDeviceStatus(DeviceStatus.connectedDevice);
           notifyListeners();
+          return true;
         }
         catch (e) {
-          print("이미 연결된 디바이스 연결해제 실패. $e");
+          print("새로운 디바이스에 연결 실패 $e");
           return false;
         }
       }
-      // 새로운 기기 연결
-      try {
-        await device.connect(timeout: Duration(seconds: timeout));
-        print("새로운 디바이스에 연결 성공");
-        _connectedDevice = device; // 연결성공시 할당.
-        notifyListeners();
-        return true;
-      }
-      catch (e) {
-        print("새로운 디바이스에 연결 실패 $e");
-        return false;
-      }
     }
+
   }
 
   sendMessage(BluetoothDevice device, String msg) async{

@@ -373,14 +373,13 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
 
     });
-    BluetoothDevice? connectedDevice = _bluetoothControl.connectedDevice;
-    if(connectedDevice == null)
+    if(_bluetoothControl.selectedDeviceForm == null)
     {
       showSimpleSnackBar(context, "먼저 블루투스 기기에 연결해주세요", 1) ;
     }
     else{
       try {
-        var result = await _bluetoothControl.sendMessage(connectedDevice, fullMsgToSend);
+        var result = await _bluetoothControl.sendMessage(_bluetoothControl.selectedDeviceForm!.device, fullMsgToSend);
         if (!result) {
           throw Exception("Failed to send message");
         }
@@ -493,10 +492,10 @@ class _MainScreenState extends State<MainScreen> {
     return Consumer<BluetoothControl>(
       builder: (context, bluetoothControl, _) {
         return StreamBuilder<BluetoothDeviceState>(
-          stream: bluetoothControl.connectedDevice?.state,
+          stream: bluetoothControl.selectedDeviceForm?.device.state,
           builder: (context, snapshot) {
             Color rampColor;
-            String deviceName = bluetoothControl.connectedDevice?.name ?? "";
+            String deviceName = bluetoothControl.selectedDeviceForm?.device.name ?? "";
             double iconSize = 15;
             if (snapshot.hasData) {
               switch (snapshot.data) {
@@ -514,10 +513,10 @@ class _MainScreenState extends State<MainScreen> {
             }
             return Column(
               children: [
-                bluetoothControl.connectedDevice != null ? SizedBox(height: 2,) : Container(),
+                bluetoothControl.selectedDeviceForm != null ? SizedBox(height: 2,) : Container(),
                 Icon(Icons.circle, color: rampColor, size: iconSize,),
-                bluetoothControl.connectedDevice != null ? SizedBox(height: 2,) : Container(),
-                bluetoothControl.connectedDevice != null ? Text(deviceName, style: TextStyle(fontSize: 8, color: Colors.white), textAlign: TextAlign.center,): Container(),
+                bluetoothControl.selectedDeviceForm != null ? SizedBox(height: 2,) : Container(),
+                bluetoothControl.selectedDeviceForm != null ? Text(deviceName, style: TextStyle(fontSize: 8, color: Colors.white), textAlign: TextAlign.center,): Container(),
               ],
             );
           },

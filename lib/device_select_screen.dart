@@ -62,20 +62,20 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
                               textAlign: TextAlign.center),
                         ),
                         SimpleSeparator(color: Colors.indigoAccent, height: .2, top: 0, bottom: 8),
-                        deviceListView_connected(bluetoothControl),
+                        deviceListView_selected(bluetoothControl),
                         SizedBox(height: 10,),
                         Expanded(
                             child: Column(
                               children: [
                                 Row(
                                   children: [
-                                    Text("Other Devices (${bluetoothControl.scanResults.length})", textAlign: TextAlign.left),
+                                    Text("Other Devices (${bluetoothControl.deviceForms.length})", textAlign: TextAlign.left),
                                     SizedBox(width: 20,),
                                     bluetoothControl.isScanning ? loadingAnimationWhenScan(bluetoothControl) : _refreshBtn(bluetoothControl)
                                   ],
                                 ),
                                 SizedBox(height: 8,),
-                                deviceListView_scanned(bluetoothControl),
+                                deviceListView_otherDevices(bluetoothControl),
                               ],
                             )
                         ),
@@ -91,12 +91,12 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
 
   InkWell _refreshBtn(BluetoothControl bluetoothControl) {
     return InkWell(
-                                  child: Icon(Icons.refresh),
-                                onTap : (){
-                                  bluetoothControl.stopScan();
-                                  bluetoothControl.startScan();
-                                },
-                              );
+      child: Icon(Icons.refresh),
+      onTap : (){
+        bluetoothControl.stopScan();
+        bluetoothControl.startScan();
+      },
+    );
   }
 
   Widget _cancelBtn(BuildContext context) {
@@ -113,17 +113,17 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
   {
     return TextStyle(fontSize: fontSize, color: color);
   }
-  Widget getRssiIcon(ScanResult r)
+  Widget getRssiIcon(int rssi)
   {
-    if(r.rssi >= -40)
+    if(rssi >= -40)
     {
       return Icon(Icons.signal_cellular_alt_sharp);
     }
-    else if(r.rssi >= -50)
+    else if(rssi >= -50)
     {
       return Icon(Icons.signal_cellular_alt_2_bar_sharp);
     }
-    else if(r.rssi >= -60)
+    else if(rssi >= -60)
     {
       return Icon(Icons.signal_cellular_alt_1_bar_sharp);
     }
@@ -131,78 +131,45 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
       return Icon(Icons.signal_cellular_no_sim_outlined, size: 15,);
     }
   }
-
-  Widget connectedDeviceListTile(BuildContext context, BluetoothControl bluetoothControl, BluetoothDevice device) {
+  Widget deviceListTile(BuildContext context, BluetoothControl bluetoothControl, DeviceForm deviceForm) {
+    final icon;
+    switch (deviceForm.deviceStatus) {
+      case DeviceStatus.connectedDevice:
+        icon = (deviceForm.device == bluetoothControl.selectedDeviceForm?.device) ? Icon(Icons.check, color: Colors.green,) : Icon(Icons.devices);
+        break;
+      case DeviceStatus.scannedDevice:
+        icon = getRssiIcon(deviceForm.rssi!);
+        break;
+      default:
+        icon = Container();
+        break;
+    }
     return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        side: BorderSide(
-          color: Colors.grey,
-          width: 0.2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
         ),
-      ),
-      child: ListTile(
-        title: Text(device.name.isNotEmpty ? device.name : "Unknown", style: contentTextStyle(15,Colors.black87),),
-        subtitle: Text(device.id.toString(), style: contentTextStyle(10,Colors.black38),),
-        trailing: Icon(Icons.check, color: Colors.green,),
-        onTap : () async {
-          await onClickedConnectDevice(context, bluetoothControl, device);
-        }
-      ),
-    );
-  }
-  Widget deviceListTileWithConnected(BuildContext context, BluetoothControl bluetoothControl, BluetoothDevice device) {
-    return StreamBuilder<BluetoothDeviceState>(
-      stream: device.state,
-      builder: (context, snapshot) {
-        return Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            child: ListTile(
-                title: Text(device.name.isNotEmpty ? device.name : "Unknown", style: contentTextStyle(15,Colors.black87),),
-                subtitle: Text(device.id.toString(), style: contentTextStyle(10, Colors.black38),),
-                trailing: Icon(Icons.devices),
-                onTap: () async {
-                  await onClickedConnectDevice(context, bluetoothControl, device);
-                })
-        );
-      },
-    );
-  }
-  Widget deviceListTileWithScanned(BuildContext context, BluetoothControl bluetoothControl, ScanResult result) {
-    return StreamBuilder<BluetoothDeviceState>(
-      stream: result.device.state,
-      builder: (context, snapshot) {
-        return Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-          child: ListTile(
-            title: Text(result.device.name.isNotEmpty ? result.device.name : "Unknown", style: contentTextStyle(15,Colors.black87),),
-            subtitle: Text(result.device.id.toString(), style: contentTextStyle(10, Colors.black38),),
-            trailing: getRssiIcon(result),
+        child: ListTile(
+            title: Text(deviceForm.device.name.isNotEmpty ? deviceForm.device.name : "Unknown", style: contentTextStyle(15,Colors.black87),),
+            subtitle: Text(deviceForm.device.id.toString(), style: contentTextStyle(10, Colors.black38),),
+            trailing: icon,
             onTap: () async {
-              await onClickedConnectDevice(context, bluetoothControl, result.device);
+              await onClickedConnectDevice(context, bluetoothControl, deviceForm);
             })
-        );
-      },
     );
   }
-  onClickedConnectDevice(BuildContext context, BluetoothControl bluetoothControl, BluetoothDevice device) async
+  onClickedConnectDevice(BuildContext context, BluetoothControl bluetoothControl, DeviceForm deviceForm) async
   {
     simpleLoadingDialog(context, "");
-    bool success = await bluetoothControl.connectDevice(device, 4);
+    bool success = await bluetoothControl.connectDevice(deviceForm, 4);
+    setState(() { });
     Navigator.of(context).pop();
     if(success) {
+      setState(() { });
       Navigator.of(context).pop();
     }
     else {
-
+      setState(() { });
     }
-    setState(() {
-
-    });
   }
 
   Widget infoBtn(BuildContext context, BluetoothDevice device)
@@ -281,43 +248,29 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
         );
       },
     );
-  }Widget deviceListView_connected(BluetoothControl bluetoothControl) {
-    if ((bluetoothControl.connectedDevice == null)) {
+  }
+  Widget deviceListView_selected(BluetoothControl bluetoothControl) {
+    if ((bluetoothControl.selectedDeviceForm == null)) {
       return Container();
     }
     else {
       return Column(
         children: [
           SizedBox(width: double.infinity, height : 22, child: Text("Connected", textAlign: TextAlign.left,)),
-          connectedDeviceListTile(context, bluetoothControl, bluetoothControl.connectedDevice!),
+          deviceListTile(context, bluetoothControl, bluetoothControl.selectedDeviceForm!),
         ]
       );
     }
   }
-
-
-  Widget deviceListView_scanned(BluetoothControl bluetoothControl) {
+  Widget deviceListView_otherDevices(BluetoothControl bluetoothControl) {
    // SizedBox(width: double.infinity, child: Text("Connected", textAlign: TextAlign.left,)),
-    return FutureBuilder<List<BluetoothDevice>>(
-        future: bluetoothControl.flutterBlue.connectedDevices,
-        builder: (context, snapshot)
-        {
-          if (snapshot.hasData) {
-            return Flexible(
-              child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: snapshot.data!.length + bluetoothControl.scanResults.length,
-                  itemBuilder: (context, index) {
-                    return (index < snapshot.data!.length) ?
-                    deviceListTileWithConnected(context, bluetoothControl, snapshot.data![index]) :
-                    deviceListTileWithScanned(context, bluetoothControl, bluetoothControl.scanResults[index]);
-                  }),);
-          }
-          else{
-            return Container();
-          }
-        }
-    );
+    return Flexible(
+      child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: bluetoothControl.deviceForms.length,
+          itemBuilder: (context, index) {
+            return deviceListTile(context, bluetoothControl, bluetoothControl.deviceForms[index]);
+          }),);
   }
 
   Widget loadingAnimationWhenScan(BluetoothControl bluetoothControl) {
@@ -328,7 +281,7 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(width: 10),
-            bluetoothControl.isScanning ? LoadingAnimationWidget.fourRotatingDots(size: 20, color: Colors.indigoAccent) : Container(),
+            bluetoothControl.isScanning ? LoadingAnimationWidget.prograssiveDots(size: 20, color: Colors.indigo, ) : Container(),
           ],
         ),
       );
