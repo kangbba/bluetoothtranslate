@@ -366,7 +366,7 @@ class _MainScreenState extends State<MainScreen> {
     _lastTranslatedLanguageItem = targetLanguageItemToUse;
     _lastTranslatedTool = translateTool;
 
-    int arduinoUniqueId = targetLanguageItemToUse.arduinoUniqueId!;
+    int arduinoUniqueId = targetLanguageItemToUse.langCodeArduino!;
     String msg = translatedWords;
     String fullMsgToSend = '$arduinoUniqueId:$msg;';
 
@@ -401,12 +401,17 @@ class _MainScreenState extends State<MainScreen> {
         finalStr = await translateByGoogleDevice.textTranslate(inputStr);
         break;
       case TranslateTool.papagoServer:
-        String papagoStr = 'zh-CN';
-        finalStr = await translateByPapagoServer.textTranslate(inputStr, papagoStr, currentTargetLanguageItem.langCodeByPapagoServer!);
+        String? from = currentSourceLanguageItem.langCodePapagoServer;
+        String? to =  currentTargetLanguageItem.langCodePapagoServer;
+        //papago str이 비어있으면 구글것을 활용해줌.
+        String sourceStr = (from != null && from!.isNotEmpty) ? from! : currentSourceLanguageItem.langCodeGoogleServer!;
+        String targetStr = (to != null && from!.isNotEmpty) ? to! : currentTargetLanguageItem.langCodeGoogleServer!;
+        //해석시작
+        finalStr = await translateByPapagoServer.textTranslate(inputStr, sourceStr, targetStr);
         break;
       case TranslateTool.googleServer:
-        String from =  currentSourceLanguageItem.langCodeByGoogleTranslateByServer!;
-        String to =  currentTargetLanguageItem.langCodeByGoogleTranslateByServer!;
+        String from =  currentSourceLanguageItem.langCodeGoogleServer!;
+        String to =  currentTargetLanguageItem.langCodeGoogleServer!;
         TranslationModel translationModel = await translateByGoogleServer.getTranslationModel(inputStr, from, to);
         finalStr = translationModel.translatedText;
         break;

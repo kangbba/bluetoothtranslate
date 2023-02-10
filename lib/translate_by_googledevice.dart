@@ -1,12 +1,5 @@
-import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
-import 'package:bluetoothtranslate/simple_loading_dialog.dart';
-import 'package:bluetoothtranslate/simple_snackbar.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:google_mlkit_translation/google_mlkit_translation.dart';
-import 'package:provider/provider.dart';
 
-import 'language_datas.dart';
+import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 
 
 class TranslateByGoogleDevice {
