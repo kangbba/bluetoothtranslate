@@ -1,4 +1,4 @@
-package com.example.bluetoothtranslate
+package com.ensayne.bangawer
 
 import io.flutter.embedding.android.FlutterActivity
 
