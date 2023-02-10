@@ -113,44 +113,55 @@ class _MainScreenState extends State<MainScreen> {
           toolbarHeight: 70,
           backgroundColor: Colors.deepPurple[900],
         ),
-        floatingActionButton:
-        _audioRecordBtn(context),
 
-        body: Container(
-          padding: EdgeInsets.all(20.0),
+        body: SafeArea(
           child: Column(
-            children: <Widget>[
-              _translateFieldInput(screenSize.height / 5),
-              SimpleSeparator(color: Colors.grey, height: 1, top: 0, bottom: 0),
-              _translatedTextDescriptions(),
-              _translateFieldOutput(screenSize.height / 5),
-              SimpleSeparator(color: Colors.grey,height: 1, top: 5, bottom: 0),
-              SizedBox(
-                height: 20.0,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  _dropdownMenuInput(),
-                  InkWell(
-                    onTap: (){
-                      var tmp = currentSourceLanguageItem;
-                      currentSourceLanguageItem = currentTargetLanguageItem;
-                      currentTargetLanguageItem = tmp;
+            children: [
+              Expanded(
+                flex: 4,
+                child: Container(
+                  padding: EdgeInsets.all(20.0),
+                  child: Column(
+                    children: <Widget>[
+                      _translateFieldInput(screenSize.height / 5),
+                      SimpleSeparator(color: Colors.grey, height: 1, top: 0, bottom: 0),
+                      _translatedTextDescriptions(),
+                      _translateFieldOutput(screenSize.height / 5),
+                      SimpleSeparator(color: Colors.grey,height: 1, top: 5, bottom: 0),
+                      SizedBox(
+                        height: 20.0,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          _dropdownMenuInput(),
+                          InkWell(
+                            onTap: (){
+                              var tmp = currentSourceLanguageItem;
+                              currentSourceLanguageItem = currentTargetLanguageItem;
+                              currentTargetLanguageItem = tmp;
 
-                      onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
-                      onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
-                    },
-                    child: Row(
-                      children: [
-                        Icon(Icons.arrow_back, size: 14,),
-                        Icon(Icons.arrow_forward, size: 14,),
-                      ],
-                    ),
+                              onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
+                              onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
+                            },
+                            child: Row(
+                              children: [
+                                Icon(Icons.arrow_back, size: 14,),
+                                Icon(Icons.arrow_forward, size: 14,),
+                              ],
+                            ),
+                          ),
+                          _dropdownMenuOutput(),
+                        ],
+                      ),
+                    ],
                   ),
-                  _dropdownMenuOutput(),
-                ],
+                ),
               ),
+              Expanded(
+                flex: 1,
+                child: _audioRecordBtn(context),
+              )
             ],
           ),
         ),
@@ -261,40 +272,35 @@ class _MainScreenState extends State<MainScreen> {
   Consumer<SpeechToTextControl> _audioRecordBtn(BuildContext context) {
     return Consumer<SpeechToTextControl>(
       builder: (context, speechToTextControl, child) {
-        return ElevatedButton(
-          style: standardBtnStyle(),
-          child: AnimatedSwitcher(
-            duration: Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeOut,
-            transitionBuilder: (child, animation) => ScaleTransition(
-              scale: animation,
-              child: child,
-            ),
-            child: Icon(
-              speechToTextControl.isListening ? Icons.stop : Icons.mic,
-            ),
-          ),
-          onPressed: () async{
-
-            if (await ConnectivityWrapper.instance.isConnected) {
-              bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
-              if (!hasPermission) {
-                PermissionController.showNoPermissionSnackBar(context);
-              }
-              else {
-                if (speechToTextControl.isListening) {
-                  await stopListening();
-                } else {
-                  await startListening();
-                }
-                setState(() {});
-              }
-            }
-            else{
-              showSimpleSnackBar(context, "인터넷 연결 안되었어요", 1);
-            }
-          },
+        return Stack(
+          children: [
+            Align(
+              alignment: Alignment.center,
+                child: Icon(Icons.circle, color: Colors.indigo, size: 60,)),
+            Align(
+              alignment: Alignment.center,
+                child: InkWell(
+                    onTap: () async{
+                      if (await ConnectivityWrapper.instance.isConnected) {
+                        bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
+                        if (!hasPermission) {
+                          PermissionController.showNoPermissionSnackBar(context);
+                        }
+                        else {
+                          if (speechToTextControl.isListening) {
+                            await stopListening();
+                          } else {
+                            await startListening();
+                          }
+                          setState(() {});
+                        }
+                      }
+                      else{
+                        showSimpleSnackBar(context, "인터넷 연결 안되었어요", 1);
+                      }
+                    },
+                    child: Icon(speechToTextControl.isListening ? Icons.stop : Icons.mic, color: Colors.white,))),
+          ],
         );
       },
     );

@@ -93,6 +93,7 @@ class BluetoothControl extends ChangeNotifier
             }
             if (!alreadyConnected) {
               _deviceForms.add(DeviceForm(DeviceStatus.scannedDevice, results[i].device, results[i].rssi));
+              _deviceForms.sort((a, b) => a.device.name.isNotEmpty ? -1 : 1);
               notifyListeners();
             }
           }
