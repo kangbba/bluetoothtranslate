@@ -485,11 +485,12 @@ class _MainScreenState extends State<MainScreen> {
       child: Icon(Icons.bluetooth_searching),
       style: standardBtnStyle(),
       onPressed: () async {
-        _bluetoothControl.startScan();
         bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
         if (!hasPermission) {
           print("권한에 문제가있음");
+          return;
         }
+        _bluetoothControl.startScan();
         showModalBottomSheet(
           context: context,
           builder: (context) {
