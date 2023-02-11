@@ -56,8 +56,8 @@ class _MainScreenState extends State<MainScreen> {
   TextEditingController outputTextEditController = TextEditingController();
 
 
-  late LanguageItem currentSourceLanguageItem = languageDatas.languageItems[0];
-  late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[3];
+  late LanguageItem currentSourceLanguageItem = languageDatas.languageItems[11];
+  late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[0];
 
   void refresh() {
     setState(() {});
@@ -135,22 +135,7 @@ class _MainScreenState extends State<MainScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
                           _dropdownMenuInput(),
-                          InkWell(
-                            onTap: (){
-                              var tmp = currentSourceLanguageItem;
-                              currentSourceLanguageItem = currentTargetLanguageItem;
-                              currentTargetLanguageItem = tmp;
-
-                              onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
-                              onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
-                            },
-                            child: Row(
-                              children: [
-                                Icon(Icons.arrow_back, size: 14,),
-                                Icon(Icons.arrow_forward, size: 14,),
-                              ],
-                            ),
-                          ),
+                          _dropdownMenuSwitchBtn(),
                           _dropdownMenuOutput(),
                         ],
                       ),
@@ -164,6 +149,28 @@ class _MainScreenState extends State<MainScreen> {
               )
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dropdownMenuSwitchBtn() {
+    return SizedBox(
+      height: 30,
+      child: InkWell(
+        onTap: (){
+          var tmp = currentSourceLanguageItem;
+          currentSourceLanguageItem = currentTargetLanguageItem;
+          currentTargetLanguageItem = tmp;
+
+          onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
+          onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
+        },
+        child: Row(
+          children: [
+            Icon(Icons.arrow_back, size: 14,),
+            Icon(Icons.arrow_forward, size: 14,),
+          ],
         ),
       ),
     );
@@ -444,26 +451,34 @@ class _MainScreenState extends State<MainScreen> {
 //
 
   Widget _dropdownMenuInput() {
-    return DropdownButton(
-      items: languageDatas.languageMenuItems,
-      value: currentSourceLanguageItem.menuDisplayStr,
-      onChanged: (value) async{
-        LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
-        await onSelectedSourceDropdownMenuItem(languageItem);
-        setState(() {
-        });
-      },
+    return SizedBox(
+      width: 100,
+      child: DropdownButton(
+        isExpanded: true,
+        items: languageDatas.languageMenuItems,
+        value: currentSourceLanguageItem.menuDisplayStr,
+        onChanged: (value) async{
+          LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+          await onSelectedSourceDropdownMenuItem(languageItem);
+          setState(() {
+          });
+        },
+      ),
     );
   }
   Widget _dropdownMenuOutput() {
-    return DropdownButton(
-      items: languageDatas.languageMenuItems,
-      value: currentTargetLanguageItem.menuDisplayStr,
-      onChanged: (value) async{
-        LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
-        onSelectedTargetDropdownMenuItem(languageItem);
-        setState(() {});
-      },
+    return SizedBox(
+      width: 100,
+      child: DropdownButton(
+        isExpanded: true,
+        items: languageDatas.languageMenuItems,
+        value: currentTargetLanguageItem.menuDisplayStr,
+        onChanged: (value) async{
+          LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+          onSelectedTargetDropdownMenuItem(languageItem);
+          setState(() {});
+        },
+      ),
     );
   }
 
