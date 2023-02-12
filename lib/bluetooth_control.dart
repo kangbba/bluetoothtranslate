@@ -195,7 +195,7 @@ class BluetoothControl extends ChangeNotifier
 
   }
 
-  sendMessage(BluetoothDevice device, String msg) async{
+  Future<bool> sendMessage(BluetoothDevice device, String msg) async{
     print("${device?.name}");
     bool success = false;
     device.state.listen((state) async {

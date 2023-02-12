@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:bluetoothtranslate/bluetooth_control.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
+import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/simple_separator.dart';
 import 'package:bluetoothtranslate/simple_snackbar.dart';
@@ -379,28 +380,17 @@ class _MainScreenState extends State<MainScreen> {
     _lastTranslatedLanguageItem = targetLanguageItemToUse;
     _lastTranslatedTool = translateTool;
 
-    int arduinoUniqueId = targetLanguageItemToUse.langCodeArduino!;
-    String msg = translatedWords;
-    String fullMsgToSend = '$arduinoUniqueId:$msg;';
 
     setState(() {
 
     });
     if(_bluetoothControl.selectedDeviceForm == null)
     {
-      showSimpleSnackBar(context, "먼저 블루투스 기기에 연결해주세요", 1) ;
+      await simpleConfirmDialog(context, "기기 연결이 안되어있습니다", "먼저 블루투스 기기에 연결해주세요");
     }
     else{
-      try {
-        var result = await _bluetoothControl.sendMessage(_bluetoothControl.selectedDeviceForm!.device, fullMsgToSend);
-        if (!result) {
-          throw Exception("Failed to send message");
-        }
-      } catch (e) {
-        print(e);
-      }
+      await sendMessageToDevice(targetLanguageItemToUse, translatedWords);
     }
-    await textToSpeechControl.changeLanguage(targetLanguageItemToUse.speechLocaleId!);
     _onClickedTextToSpeechBtn();
   }
   Future<String?> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
@@ -410,8 +400,9 @@ class _MainScreenState extends State<MainScreen> {
     switch(translateTool)
     {
       case TranslateTool.googleDevice:
-        translateByGoogleDevice.changeTranslateApiLanguage(currentSourceLanguageItem.translateLanguage, currentTargetLanguageItem.translateLanguage);
+        simpleLoadingDialog(context, "Device 언어 다운로드중");
         finalStr = await translateByGoogleDevice.textTranslate(inputStr);
+        Navigator.of(context).pop();
         break;
       case TranslateTool.papagoServer:
         String? from = currentSourceLanguageItem.langCodePapagoServer;
@@ -434,13 +425,17 @@ class _MainScreenState extends State<MainScreen> {
 
   onSelectedSourceDropdownMenuItem(LanguageItem languageItem) {
     speechToTextControl.currentLocaleId = (languageItem.speechLocaleId!);
+    currentSourceLanguageItem = languageItem;
+    translateByGoogleDevice.changeTranslateApiLanguage(languageItem.translateLanguage, currentTargetLanguageItem.translateLanguage);
+
     setState(() {
-      currentSourceLanguageItem = languageItem;
     });
   }
-  onSelectedTargetDropdownMenuItem(LanguageItem languageItem){
+  onSelectedTargetDropdownMenuItem(LanguageItem languageItem) async{
+    currentTargetLanguageItem = languageItem;
+    translateByGoogleDevice.changeTranslateApiLanguage(currentSourceLanguageItem.translateLanguage, languageItem.translateLanguage);
+    await textToSpeechControl.changeLanguage(languageItem.speechLocaleId!);
     setState(() {
-      currentTargetLanguageItem = languageItem;
     });
   }
 
@@ -475,6 +470,7 @@ class _MainScreenState extends State<MainScreen> {
         value: currentTargetLanguageItem.menuDisplayStr,
         onChanged: (value) async{
           LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+
           onSelectedTargetDropdownMenuItem(languageItem);
           setState(() {});
         },
@@ -550,6 +546,19 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
+  }
+
+  sendMessageToDevice(LanguageItem targetLanguageItemToUse, String translatedWords) async{
+
+    int arduinoUniqueId = targetLanguageItemToUse.langCodeArduino!;
+    String msg = translatedWords;
+    String fullMsgToSend = '$arduinoUniqueId:$msg;';
+
+    try {
+      await _bluetoothControl.sendMessage(_bluetoothControl.selectedDeviceForm!.device, fullMsgToSend);
+    } catch (e) {
+      throw Exception("메세지 전송 실패 이유 : $e");
+    }
   }
 }
 
