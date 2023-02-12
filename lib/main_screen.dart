@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:bluetoothtranslate/bluetooth_control.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
+import 'package:bluetoothtranslate/simple_ask_dialog.dart';
 import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/simple_separator.dart';
@@ -50,9 +51,7 @@ class _MainScreenState extends State<MainScreen> {
   final SpeechToTextControl speechToTextControl = SpeechToTextControl();
   final TextToSpeechControl textToSpeechControl = TextToSpeechControl();
 
-  String _lastTranslatedStr = '';
-  LanguageItem? _lastTranslatedLanguageItem = null;
-  TranslateTool? _lastTranslatedTool = null;
+  TranslateTool? _lastTranslatedTool;
   TextEditingController inputTextEditController = TextEditingController();
   TextEditingController outputTextEditController = TextEditingController();
 
@@ -60,12 +59,15 @@ class _MainScreenState extends State<MainScreen> {
   late LanguageItem currentSourceLanguageItem = languageDatas.languageItems[11];
   late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[0];
 
+
+
   void refresh() {
     setState(() {});
   }
   @override
   void initState() {
     super.initState();
+
     languageDatas.initializeLanguageDatas();
     _bluetoothControl.initializeBluetoothControl();
 
@@ -82,10 +84,12 @@ class _MainScreenState extends State<MainScreen> {
   }
   @override
   void dispose() {
+
     // TODO: implement dispose
     inputTextEditController.dispose();
     outputTextEditController.dispose();
     translateByGoogleDevice.disposeTranslateApi();
+
     super.dispose();
   }
 
@@ -295,12 +299,17 @@ class _MainScreenState extends State<MainScreen> {
                           PermissionController.showNoPermissionSnackBar(context);
                         }
                         else {
-                          if (speechToTextControl.isListening) {
-                            await stopListening();
-                          } else {
-                            await startListening();
+                          if(_bluetoothControl.selectedDeviceForm == null) {
+                            await simpleConfirmDialog(context, "블루투스 기기 연결이 안되었습니다.", "먼저 블루투스 기기에 연결해주세요.");
                           }
-                          setState(() {});
+                          else{
+                            if (speechToTextControl.isListening) {
+                            await stopListening();
+                            } else {
+                            await startListening();
+                            }
+                            setState(() {});
+                          }
                         }
                       }
                       else{
@@ -322,21 +331,31 @@ class _MainScreenState extends State<MainScreen> {
 
     print("startListening");
     speechToTextControl.isListening = true;
-    print(speechToTextControl.speechToText);
+
+    int realTimeCounter = 0;
     await speechToTextControl.speechToText.listen(
+      listenFor: Duration(seconds: 10),
       localeId: speechToTextControl.currentLocaleId,
       onResult: (result) async {
-        speechToTextControl.recentRecognizedWords = result.recognizedWords;
+        String? recognizedWords = result.recognizedWords;
         print("SpeechToText 듣는중 : $result");
+
+
+        if(speechToTextControl.recentRecognizedWords != recognizedWords)
+        {
+          realTimeCounter++;
+          inputTextEditController.text = recognizedWords;
+          speechToTextControl.recentRecognizedWords = recognizedWords;
+        }
         if(result.finalResult)
         {
           stopListening();
         }
-        else{
-          inputTextEditController.text = speechToTextControl.recentRecognizedWords;
-        }
       },
     ).then((value) async{
+    }).onError((error, stackTrace) {
+      print("error $error");
+      stopListening();
     });
   }
   stopListening() async{
@@ -347,57 +366,28 @@ class _MainScreenState extends State<MainScreen> {
   }
   whenSpeechEnd(String recentRecognizedWords) async
   {
-    inputTextEditController.text = recentRecognizedWords;
-    LanguageItem sourceLanguageItemToUse = currentSourceLanguageItem;
-    LanguageItem targetLanguageItemToUse = currentTargetLanguageItem;
-
-    bool isContainChina = (sourceLanguageItemToUse.translateLanguage == TranslateLanguage.chinese) || (targetLanguageItemToUse.translateLanguage == TranslateLanguage.chinese);
-
-    List<TranslateTool> trToolsOrderStandard = [TranslateTool.googleServer, TranslateTool.papagoServer, TranslateTool.googleDevice];
-    List<TranslateTool> trToolsOrderChina = [TranslateTool.papagoServer, TranslateTool.googleDevice, TranslateTool.googleServer];
-
-    List<TranslateTool> trToolsToUse = isContainChina ? trToolsOrderChina : trToolsOrderStandard;
-    TranslateTool? translateTool;
-    String? translatedWords;
-    for(int i = 0 ; i < trToolsToUse.length ; i++)
-    {
-      translateTool = trToolsToUse[i];
-      translatedWords = await _translateTextWithCurrentLanguage(recentRecognizedWords, translateTool);
-      if(translatedWords != null)
-      {
-        print("정상 응답 발견");
-        break;
-      }
-    }
-    if(translatedWords == null)
-    {
-      print("번역 실패 : translatedWords is null");
-      return;
-    }
-    print("_lastTranslatedStr : $translatedWords");
-    outputTextEditController.text = translatedWords;
-    _lastTranslatedStr = translatedWords;
-    _lastTranslatedLanguageItem = targetLanguageItemToUse;
-    _lastTranslatedTool = translateTool;
-
-
-    setState(() {
-
-    });
     if(_bluetoothControl.selectedDeviceForm == null)
     {
-      await simpleConfirmDialog(context, "기기 연결이 안되어있습니다", "먼저 블루투스 기기에 연결해주세요");
+      bool? response = await simpleAskDialog(context, "기기 연결이 안되어있습니다", "블루투스 기기에 연결하시겠습니까?");
+      if(response == true)
+      {
+        await onClickedOpenDeviceSelectScreen();
+      }
     }
     else{
-      await sendMessageToDevice(targetLanguageItemToUse, translatedWords);
+      await trySendMsgToDevice(recentRecognizedWords);
+      setState(() {
+
+      });
+     // await sendMessageToDevice(targetLanguageItemToUse, translatedWords);
     }
-    _onClickedTextToSpeechBtn();
   }
+
   Future<String?> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
   {
     print("translateTool $translateTool 를 이용해 번역 시도합니다.");
     String? finalStr;
-    switch(translateTool)
+    switch(translateTool!)
     {
       case TranslateTool.googleDevice:
         simpleLoadingDialog(context, "Device 언어 다운로드중");
@@ -431,10 +421,9 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
     });
   }
-  onSelectedTargetDropdownMenuItem(LanguageItem languageItem) async{
+  onSelectedTargetDropdownMenuItem(LanguageItem languageItem){
     currentTargetLanguageItem = languageItem;
     translateByGoogleDevice.changeTranslateApiLanguage(currentSourceLanguageItem.translateLanguage, languageItem.translateLanguage);
-    await textToSpeechControl.changeLanguage(languageItem.speechLocaleId!);
     setState(() {
     });
   }
@@ -496,18 +485,7 @@ class _MainScreenState extends State<MainScreen> {
       child: Icon(Icons.bluetooth_searching),
       style: standardBtnStyle(),
       onPressed: () async {
-        bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
-        if (!hasPermission) {
-          print("권한에 문제가있음");
-          return;
-        }
-        _bluetoothControl.startScan();
-        showModalBottomSheet(
-          context: context,
-          builder: (context) {
-            return DeviceSelectScreen(bluetoothControl: _bluetoothControl);
-          },
-        );
+        await onClickedOpenDeviceSelectScreen();
       },
     );
   }
@@ -548,17 +526,72 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  sendMessageToDevice(LanguageItem targetLanguageItemToUse, String translatedWords) async{
-
+  String getFullMsg(LanguageItem targetLanguageItemToUse, String translatedMsg)
+  {
     int arduinoUniqueId = targetLanguageItemToUse.langCodeArduino!;
-    String msg = translatedWords;
-    String fullMsgToSend = '$arduinoUniqueId:$msg;';
+    String fullMsgToSend = '$arduinoUniqueId:$translatedMsg;';
+    return fullMsgToSend;
+  }
+  trySendMsgToDevice (String recognizedWords) async{
 
+    print("-----------------------번역시도------------------------");
+    bool isContainChina =
+        (currentSourceLanguageItem.translateLanguage == TranslateLanguage.chinese) || (currentTargetLanguageItem.translateLanguage == TranslateLanguage.chinese);
+
+
+    //빈도조절 추가.
+    textToSpeechControl.changeLanguage(currentTargetLanguageItem.speechLocaleId!);
+
+    List<TranslateTool> trToolsOrderStandard = [TranslateTool.googleServer, TranslateTool.papagoServer, TranslateTool.googleDevice];
+    List<TranslateTool> trToolsOrderChina = [TranslateTool.papagoServer, TranslateTool.googleDevice, TranslateTool.googleServer];
+
+    String? translatedWords;
+    TranslateTool? trToolConfirmed;
+    List<TranslateTool> trToolsToUse = isContainChina ? trToolsOrderChina : trToolsOrderStandard;
+    for(int i = 0 ; i < trToolsToUse.length ; i++)
+    {
+      TranslateTool translateTool = trToolsToUse[i];
+      String? response = await _translateTextWithCurrentLanguage(recognizedWords, translateTool);
+      if(response != null && response!.isNotEmpty)
+      {
+        translatedWords = response!;
+        trToolConfirmed = translateTool;
+        break;
+      }
+    }
+    print("-----------------------번역 끝------------------------");
+    if(trToolConfirmed != null && translatedWords != null)
+    {
+      outputTextEditController.text = translatedWords;
+      String fullMsg = getFullMsg(currentTargetLanguageItem ,translatedWords);
+      await sendMessageToSelectedDevice(fullMsg);
+    }
+    print("-----------------------전송 끝------------------------");
+    _onClickedTextToSpeechBtn();
+  }
+  sendMessageToSelectedDevice(String fullMsgToSend) async{
     try {
       await _bluetoothControl.sendMessage(_bluetoothControl.selectedDeviceForm!.device, fullMsgToSend);
     } catch (e) {
       throw Exception("메세지 전송 실패 이유 : $e");
     }
+  }
+
+  onClickedOpenDeviceSelectScreen() async{
+    bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
+    if (!hasPermission) {
+      print("권한에 문제가있음");
+      return;
+    }
+    _bluetoothControl.startScan();
+    showModalBottomSheet(
+      useSafeArea: true,
+      isDismissible: false,
+      context: context,
+      builder: (context) {
+        return DeviceSelectScreen(bluetoothControl: _bluetoothControl);
+      },
+    );
   }
 }
 
