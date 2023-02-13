@@ -293,23 +293,25 @@ class _MainScreenState extends State<MainScreen> {
               alignment: Alignment.center,
                 child: InkWell(
                     onTap: () async{
-                      if (await ConnectivityWrapper.instance.isConnected) {
+                    if (await ConnectivityWrapper.instance.isConnected) {
                         bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
                         if (!hasPermission) {
                           PermissionController.showNoPermissionSnackBar(context);
                         }
                         else {
+                          print("devlog bluetooth state :  ${_bluetoothControl.flutterBlue.state}");
                           if(_bluetoothControl.selectedDeviceForm == null) {
-                            await simpleConfirmDialog(context, "블루투스 기기 연결이 안되었습니다.", "먼저 블루투스 기기에 연결해주세요.");
+                              await simpleAskDialog(context, "블루투스 기기 연결이 안되었습니다.", "블루투스 기기에 연결하시겠습니까?");
+                              onClickedOpenDeviceSelectScreen();
                           }
                           else{
                             if (speechToTextControl.isListening) {
-                            await stopListening();
+                              await stopListening();
                             } else {
-                            await startListening();
+                              await startListening();
                             }
                             setState(() {});
-                          }
+                          };
                         }
                       }
                       else{
@@ -390,9 +392,15 @@ class _MainScreenState extends State<MainScreen> {
     switch(translateTool!)
     {
       case TranslateTool.googleDevice:
-        simpleLoadingDialog(context, "Device 언어 다운로드중");
-        finalStr = await translateByGoogleDevice.textTranslate(inputStr);
-        Navigator.of(context).pop();
+        bool isModelDownloaded = await translateByGoogleDevice.getLanguageDownloaded(currentTargetLanguageItem.translateLanguage!);
+        if(!isModelDownloaded)
+        {
+          bool? response = await simpleAskDialog(context, "서버 번역을 사용할수 없습니다.", "디바이스 번역을위해 언어를 다운로드하시겠습니까?");
+          if(response! == true)
+          {
+            finalStr = await translateByGoogleDevice.textTranslate(inputStr);
+          }
+        }
         break;
       case TranslateTool.papagoServer:
         String? from = currentSourceLanguageItem.langCodePapagoServer;
@@ -583,6 +591,15 @@ class _MainScreenState extends State<MainScreen> {
       print("권한에 문제가있음");
       return;
     }
+    _bluetoothControl.flutterBlue.state.listen((state) async {
+      if (state == BluetoothState.off) {
+        print("블루투스 켤게요");
+        await simpleConfirmDialog(context, "블루투스 컴색을위해 블루투스를 켭니다", "message");
+        simpleLoadingDialog(context, "블루투스를 켜는중");
+        bool response = await _bluetoothControl.flutterBlue.turnOn();
+        Navigator.of(context).pop();
+      }
+    });
     _bluetoothControl.startScan();
     showModalBottomSheet(
       useSafeArea: true,
