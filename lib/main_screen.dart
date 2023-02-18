@@ -60,7 +60,7 @@ class _MainScreenState extends State<MainScreen> {
 
 
   late LanguageItem currentSourceLanguageItem = languageDatas.languageItems[11];
-  late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[4];
+  late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[0];
 
   bool isDropdownAnimating = false;
 
@@ -142,18 +142,18 @@ class _MainScreenState extends State<MainScreen> {
               Expanded(
                 flex: 1,
                 child: _translateFieldOutput()),
-              const SimpleSeparator(color: Colors.grey,height: 1, top: 5, bottom: 0),
+              const SimpleSeparator(color: Colors.grey,height: 1, top: 0, bottom: 20),
               currentDeviceStateRamp(),
               SizedBox(
-                height: 150,
+                height: 100,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    SizedBox(width: 20,),
                     _dropdownMenuInput(),
+                    SizedBox(width: 14,),
                     _dropdownMenuSwitchBtn(),
+                    SizedBox(width: 14,),
                     _dropdownMenuOutput(),
-                    SizedBox(width: 20,),
                   ],
                 ),
               ),
@@ -171,7 +171,6 @@ class _MainScreenState extends State<MainScreen> {
       width: 25,
       height: 25,
       child: InkWell(
-
         onTap: (){
           _onClickedDropdownMenuSwitchBtn();
         },
@@ -483,39 +482,49 @@ class _MainScreenState extends State<MainScreen> {
 //
 
   Widget _dropdownMenuInput() {
-    return SizedBox(
-      width: 100,
-      height: 50,
-      child: Card(
-        child: DropdownButton(
-          isExpanded: true,
-          alignment: Alignment.center,
-          items: languageDatas.languageMenuItems,
-          value: currentSourceLanguageItem.menuDisplayStr,
-          onChanged: (value) async{
-            LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
-            setState(() {
-            });
-            onSelectedSourceDropdownMenuItem(languageItem);
-          },
+    return Card(
+      child: SizedBox(
+        width: 130,
+        height: 45,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: DropdownButton(
+            isExpanded: true,
+            underline: Container(),
+
+            items: languageDatas.languageMenuItems,
+            value: currentSourceLanguageItem.menuDisplayStr,
+            onChanged: (value) async{
+              LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+              onSelectedSourceDropdownMenuItem(languageItem);
+              setState(() {
+              });
+            },
+          ),
         ),
       ),
     );
   }
   Widget _dropdownMenuOutput() {
-    return SizedBox(
-      width: 100,
-      height: 50,
-      child: DropdownButton(
-        isExpanded: true,
-        items: languageDatas.languageMenuItems,
-        value: currentTargetLanguageItem.menuDisplayStr,
-        onChanged: (value) async{
-          LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
-          setState(() {
-          });
-          onSelectedTargetDropdownMenuItem(languageItem);
-        },
+    return Card(
+      child: SizedBox(
+        width: 130,
+        height: 45,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: DropdownButton(
+            isExpanded: true,
+            underline: Container(),
+            items: languageDatas.languageMenuItems,
+            value: currentTargetLanguageItem.menuDisplayStr,
+            onChanged: (value) async{
+              LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+              onSelectedTargetDropdownMenuItem(languageItem);
+              setState(() {
+              });
+            },
+          ),
+        ),
       ),
     );
   }
@@ -564,17 +573,21 @@ class _MainScreenState extends State<MainScreen> {
                   rampColor = Colors.orange;
               }
             } else {
-              rampColor = Colors.transparent;
+              rampColor = Colors.red;
             }
             return IntrinsicWidth(
               child: Card(
                 color: Colors.white,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Icon(Icons.circle, color: rampColor, size: iconSize,),
-                    bluetoothControl.selectedDeviceForm != null ? Text("$deviceName  ", style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.w400)): Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.w400)),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Icon(Icons.circle, color: rampColor, size: iconSize,),
+                      SizedBox(width: 3,),
+                      bluetoothControl.selectedDeviceForm != null ? Text("$deviceName  ", style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.w400)): Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.w400)),
+                    ],
+                  ),
                 ),
               ),
             );

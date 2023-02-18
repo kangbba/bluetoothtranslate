@@ -23,8 +23,8 @@ class LanguageItem {
 }
 class LanguageDatas {
   List<LanguageItem> languageItems = [
-    LanguageItem(translateLanguage: TranslateLanguage.english, menuDisplayStr: "English (영어)", speechLocaleId: "en_US", langCodeGoogleServer: "en", langCodePapagoServer: "en", langCodeArduino: 1),
-    LanguageItem(translateLanguage: TranslateLanguage.spanish, menuDisplayStr: "Spanish (스페인어)", speechLocaleId: "es_ES", langCodeGoogleServer: "es", langCodePapagoServer: "es", langCodeArduino: 2),
+    LanguageItem(translateLanguage: TranslateLanguage.english, menuDisplayStr: "English", speechLocaleId: "en_US", langCodeGoogleServer: "en", langCodePapagoServer: "en", langCodeArduino: 1),
+    LanguageItem(translateLanguage: TranslateLanguage.spanish, menuDisplayStr: "Spanish", speechLocaleId: "es_ES", langCodeGoogleServer: "es", langCodePapagoServer: "es", langCodeArduino: 2),
     LanguageItem(translateLanguage: TranslateLanguage.french, menuDisplayStr: "French", speechLocaleId: "fr_FR", langCodeGoogleServer: "fr", langCodePapagoServer: "fr", langCodeArduino: 3),
     LanguageItem(translateLanguage: TranslateLanguage.german, menuDisplayStr: "German", speechLocaleId: "de_DE", langCodeGoogleServer: "de", langCodePapagoServer: "de", langCodeArduino: 4),
     LanguageItem(translateLanguage: TranslateLanguage.chinese, menuDisplayStr: "Chinese", speechLocaleId: "zh_CN", langCodeGoogleServer: "zh-CN", langCodePapagoServer: "zh-CN", langCodeArduino: 5),
@@ -83,7 +83,7 @@ class LanguageDatas {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(languageItem.menuDisplayStr!,),
+          Text(languageItem.menuDisplayStr!, textAlign: TextAlign.center,),
         ],
       ),
     );

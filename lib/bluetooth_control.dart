@@ -249,7 +249,7 @@ class BluetoothControl extends ChangeNotifier
         {
           try {
             print("startMonitoringConnection... trying nominated device form trying");
-            await connectDevice(_nominatedDeviceForm!, 3);
+            await connectDevice(_nominatedDeviceForm!, 5);
           }
           catch(e)
           {
