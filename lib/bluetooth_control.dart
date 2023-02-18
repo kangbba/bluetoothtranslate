@@ -265,5 +265,6 @@ class BluetoothControl extends ChangeNotifier
   void stopMonitoringConnection() {
     _currentDeviceStateSubscription?.cancel();
   }
+  
 
 }
