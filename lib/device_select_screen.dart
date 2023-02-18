@@ -106,7 +106,7 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
           setState(() {
           });
         },
-        child: Icon(Icons.cancel, size: 30,),);
+        child: Icon(Icons.navigate_next_rounded, size: 36,),);
   }
 
   TextStyle contentTextStyle(double fontSize, Color color)

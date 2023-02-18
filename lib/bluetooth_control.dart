@@ -12,7 +12,8 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 enum DeviceStatus{
   connectedDevice,
-  scannedDevice
+  scannedDevice,
+  disconnectedDevice
 }
 class DeviceForm extends ChangeNotifier
 {
@@ -55,13 +56,23 @@ class BluetoothControl extends ChangeNotifier
     return _deviceForms;
   }
 
+  StreamSubscription? _currentDeviceStateSubscription;
   DeviceForm? get selectedDeviceForm
   {
     return _selectedDeviceForm;
   }
   DeviceForm? _selectedDeviceForm;
 
+  DeviceForm? _nominatedDeviceForm;
+
+
   void initializeBluetoothControl() {
+    startMonitoringConnection();
+  }
+
+  void onDisposeBluetoothControl()
+  {
+    stopMonitoringConnection();
   }
 
 
@@ -183,6 +194,8 @@ class BluetoothControl extends ChangeNotifier
           print("새로운 디바이스에 연결 성공");
           _selectedDeviceForm = deviceForm; // 연결성공시 할당.
           _selectedDeviceForm!.setDeviceStatus(DeviceStatus.connectedDevice);
+
+          // 연결 상태 변화 감지
           notifyListeners();
           return true;
         }
@@ -210,6 +223,47 @@ class BluetoothControl extends ChangeNotifier
       }
     });
     return success;
+  }
+
+  void startMonitoringConnection() {
+    const Duration checkInterval = Duration(seconds: 1);
+
+    _currentDeviceStateSubscription = Stream.periodic(checkInterval).listen((_) async {
+      if(_selectedDeviceForm != null)
+      {
+        print("startMonitoringConnection... not null");
+        final currentState = await _selectedDeviceForm!.device.state.first;
+        if (currentState == BluetoothDeviceState.disconnected) {
+          print("remote disconnected");
+          _nominatedDeviceForm = _selectedDeviceForm;
+          _selectedDeviceForm!.setDeviceStatus(DeviceStatus.disconnectedDevice);
+          _selectedDeviceForm = null;
+          notifyListeners();
+        }
+        else{
+      //   print("successfully connected");
+        }
+      }
+      else{
+        if(_nominatedDeviceForm != null && selectedDeviceForm == null)
+        {
+          try {
+            print("startMonitoringConnection... trying nominated device form trying");
+            await connectDevice(_nominatedDeviceForm!, 3);
+          }
+          catch(e)
+          {
+            print("startMonitoringConnection... trying nominated device form fail");
+          }
+        }
+        else{
+          print("startMonitoringConnection... null");
+        }
+      }
+    });
+  }
+  void stopMonitoringConnection() {
+    _currentDeviceStateSubscription?.cancel();
   }
 
 }

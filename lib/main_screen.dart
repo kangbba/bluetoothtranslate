@@ -23,8 +23,11 @@ import 'package:bluetoothtranslate/translate_by_googledevice.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:google_cloud_translation/google_cloud_translation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:simple_ripple_animation/simple_ripple_animation.dart';
 
+import 'audio_wave_effect.dart';
 import 'device_select_screen.dart';
 import 'language_datas.dart';
 
@@ -57,7 +60,9 @@ class _MainScreenState extends State<MainScreen> {
 
 
   late LanguageItem currentSourceLanguageItem = languageDatas.languageItems[11];
-  late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[0];
+  late LanguageItem currentTargetLanguageItem = languageDatas.languageItems[4];
+
+  bool isDropdownAnimating = false;
 
 
 
@@ -89,6 +94,7 @@ class _MainScreenState extends State<MainScreen> {
     inputTextEditController.dispose();
     outputTextEditController.dispose();
     translateByGoogleDevice.disposeTranslateApi();
+    _bluetoothControl.onDisposeBluetoothControl();
 
     super.dispose();
   }
@@ -107,90 +113,89 @@ class _MainScreenState extends State<MainScreen> {
       ],
       child: Scaffold(
         appBar: AppBar(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              bluetoothDeviceSelectBtn(context),
-              SizedBox(width: 8,),
-              currentDeviceStateRamp()
-            ],
+          title: SafeArea(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(width: 35,),
+                Text("banGawer", style: TextStyle(color: Colors.white, fontSize: 25),),
+                Column(
+                  children: [
+                    bluetoothDeviceSelectBtn(context),
+                  ],
+                ),
+              ],
+            ),
           ),
-          toolbarHeight: 70,
-          backgroundColor: Colors.deepPurple[900],
+          toolbarHeight: 90,
+          backgroundColor: Colors.indigo[900],
         ),
-
-        body: SafeArea(
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
+              SizedBox(height : 30, child: Container()),
               Expanded(
-                flex: 4,
-                child: Container(
-                  padding: EdgeInsets.all(20.0),
-                  child: Column(
-                    children: <Widget>[
-                      _translateFieldInput(screenSize.height / 5),
-                      SimpleSeparator(color: Colors.grey, height: 1, top: 0, bottom: 0),
-                      _translatedTextDescriptions(),
-                      _translateFieldOutput(screenSize.height / 5),
-                      SimpleSeparator(color: Colors.grey,height: 1, top: 5, bottom: 0),
-                      SizedBox(
-                        height: 20.0,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          _dropdownMenuInput(),
-                          _dropdownMenuSwitchBtn(),
-                          _dropdownMenuOutput(),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                  flex: 1, child: _translateFieldInput()),
+              const SimpleSeparator(color: Colors.grey, height: 1, top: 0, bottom: 0),
+              SizedBox(height : 30, child: _translatedTextDescriptions()),
               Expanded(
                 flex: 1,
-                child: _audioRecordBtn(context),
-              )
+                child: _translateFieldOutput()),
+              const SimpleSeparator(color: Colors.grey,height: 1, top: 5, bottom: 0),
+              currentDeviceStateRamp(),
+              SizedBox(
+                height: 150,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    SizedBox(width: 20,),
+                    _dropdownMenuInput(),
+                    _dropdownMenuSwitchBtn(),
+                    _dropdownMenuOutput(),
+                    SizedBox(width: 20,),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
+        bottomNavigationBar: SizedBox(height: 150, child: Align(alignment: Alignment.center, child: _audioRecordBtn(context))),
       ),
     );
   }
+
 
   Widget _dropdownMenuSwitchBtn() {
     return SizedBox(
-      height: 30,
+      width: 25,
+      height: 25,
       child: InkWell(
-        onTap: (){
-          var tmp = currentSourceLanguageItem;
-          currentSourceLanguageItem = currentTargetLanguageItem;
-          currentTargetLanguageItem = tmp;
 
-          onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
-          onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
+        onTap: (){
+          _onClickedDropdownMenuSwitchBtn();
         },
-        child: Row(
-          children: [
-            Icon(Icons.arrow_back, size: 14,),
-            Icon(Icons.arrow_forward, size: 14,),
-          ],
-        ),
+        child: Image.asset('assets/exchange.png')
       ),
     );
   }
 
+  _onClickedDropdownMenuSwitchBtn()
+  {
+    var tmp = currentSourceLanguageItem;
+    currentSourceLanguageItem = currentTargetLanguageItem;
+    currentTargetLanguageItem = tmp;
+
+    onSelectedSourceDropdownMenuItem(currentSourceLanguageItem);
+    onSelectedTargetDropdownMenuItem(currentTargetLanguageItem);
+  }
   Widget _translatedTextDescriptions()
   {
-    return SizedBox(
-      height: 30,
-      child: Stack(
-        children: [
-          Positioned(left: 2, top: 4, child: _textToSpeechBtn()),
-          Positioned(right : 0, top: 8, child: _translateToolField()),
-        ]
-      ),
+    return Stack(
+      children: [
+        Positioned(left: 8, top: 8, child: _textToSpeechBtn()),
+        Positioned(right : 8, top: 8, child: _translateToolField()),
+      ]
     );
   }
   Widget _textToSpeechBtn()
@@ -219,42 +224,45 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  Widget _translateFieldInput(double height) {
-    return SizedBox(
-      height: height,
-      child: Consumer<SpeechToTextControl>(
-        builder: (context, speech, child) {
-          return TextField(
+  Widget _translateFieldInput() {
+    return Consumer<SpeechToTextControl>(
+      builder: (context, speech, child) {
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
             readOnly: true,
+            style: TextStyle(fontSize: 25),
             keyboardType: TextInputType.multiline,
             maxLines: 4,
             controller: inputTextEditController,
             decoration: InputDecoration(
               border : InputBorder.none,
-              hintText: speechToTextControl.isListening? "녹음중입니다" : "",
+              hintText: isRecording ? "" : "마이크 버튼을 눌러 번역할 내용을 말해보세요.",
+              hintStyle: TextStyle(fontSize: 14),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
-  Widget _translateFieldOutput(double height) {
-    return SizedBox(
-      height: height,
-      child: Consumer<SpeechToTextControl>(
-        builder: (context, speech, child) {
-          return TextField(
+  Widget _translateFieldOutput() {
+    return Consumer<SpeechToTextControl>(
+      builder: (context, speech, child) {
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            readOnly: true,
+            style: TextStyle(fontSize: 25),
             keyboardType: TextInputType.multiline,
             maxLines: 4,
-            readOnly: true,
             controller: outputTextEditController,
             decoration: InputDecoration(
               border: InputBorder.none,
-              hintText: speechToTextControl.isListening ? "Recording..." : "",
+              hintText: "",
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -281,48 +289,73 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  bool isRecording = false;
   Consumer<SpeechToTextControl> _audioRecordBtn(BuildContext context) {
     return Consumer<SpeechToTextControl>(
+      // Positioned(left : 9, child: LoadingAnimationWidget.beat(size: 50, color: Colors.lightBlueAccent)),
       builder: (context, speechToTextControl, child) {
         return Stack(
           children: [
-            Align(
-              alignment: Alignment.center,
-                child: Icon(Icons.circle, color: Colors.indigo, size: 60,)),
-            Align(
-              alignment: Alignment.center,
-                child: InkWell(
-                    onTap: () async{
-                    if (await ConnectivityWrapper.instance.isConnected) {
-                        bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
-                        if (!hasPermission) {
-                          PermissionController.showNoPermissionSnackBar(context);
-                        }
-                        else {
-                          print("devlog bluetooth state :  ${_bluetoothControl.flutterBlue.state}");
-                          if(_bluetoothControl.selectedDeviceForm == null) {
-                              await simpleAskDialog(context, "블루투스 기기 연결이 안되었습니다.", "블루투스 기기에 연결하시겠습니까?");
-                              onClickedOpenDeviceSelectScreen();
-                          }
-                          else{
-                            if (speechToTextControl.isListening) {
-                              await stopListening();
-                            } else {
-                              await startListening();
-                            }
-                            setState(() {});
-                          };
-                        }
-                      }
-                      else{
-                        showSimpleSnackBar(context, "인터넷 연결 안되었어요", 1);
-                      }
-                    },
-                    child: Icon(speechToTextControl.isListening ? Icons.stop : Icons.mic, color: Colors.white,))),
+            RippleAnimation(
+              color: Colors.indigoAccent,
+              delay: const Duration(milliseconds: 200),
+              repeat: true,
+              minRadius: isRecording ? 35 : 0,
+              ripplesCount: 6,
+              duration: const Duration(milliseconds: 6 * 300),
+              child:
+              ElevatedButton(
+                style: ButtonStyle(
+                  minimumSize: MaterialStateProperty.all(Size(60, 60)),
+                  shape: MaterialStateProperty.all(CircleBorder()),
+                  backgroundColor: MaterialStateProperty.all(isRecording ? Colors.indigo : Colors.indigo),
+                ),
+                onPressed: onPressedAudioRecordBtn,
+                child: isRecording ?
+                LoadingAnimationWidget.staggeredDotsWave(size: 36, color: Colors.white) :
+                Icon(Icons.mic, color:  Colors.white, size: 36,),
+              ),
+            ),
           ],
         );
       },
     );
+  }
+
+
+  // isRecording ? LoadingAnimationWidget.beat(size: 50, color: Colors.grey) : Container(width: 36, height: 36,),
+  onPressedAudioRecordBtn() async{
+    if (await ConnectivityWrapper.instance.isConnected) {
+      bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
+      if (!hasPermission) {
+        PermissionController.showNoPermissionSnackBar(context);
+      }
+      else {
+        print("devlog bluetooth state :  ${_bluetoothControl.flutterBlue.state}");
+        if(_bluetoothControl.selectedDeviceForm == null) {
+          await simpleAskDialog(context, "블루투스 기기 연결이 안되었습니다.", "블루투스 기기에 연결하시겠습니까?");
+          onClickedOpenDeviceSelectScreen();
+        }
+        else{
+          // simpleLoadingDialog(context, "디바이스 재연결중");
+          // await _bluetoothControl.connectDevice(_bluetoothControl.selectedDeviceForm!, 3);
+          // Navigator.of(context).pop();
+          if(!isRecording)
+          {
+            isRecording = true;
+            startListening();
+          }
+          else{
+            isRecording = false;
+            stopListening();
+          }
+          setState(() {});
+        };
+      }
+    }
+    else{
+      showSimpleSnackBar(context, "인터넷 연결 안되었어요", 1);
+    }
   }
 
   startListening() async{
@@ -351,12 +384,14 @@ class _MainScreenState extends State<MainScreen> {
         }
         if(result.finalResult)
         {
+          isRecording = false;
           stopListening();
         }
       },
     ).then((value) async{
     }).onError((error, stackTrace) {
       print("error $error");
+      isRecording = false;
       stopListening();
     });
   }
@@ -378,6 +413,8 @@ class _MainScreenState extends State<MainScreen> {
     }
     else{
       await trySendMsgToDevice(recentRecognizedWords);
+      _onClickedTextToSpeechBtn();
+      _onClickedDropdownMenuSwitchBtn();
       setState(() {
 
       });
@@ -426,12 +463,15 @@ class _MainScreenState extends State<MainScreen> {
     currentSourceLanguageItem = languageItem;
     translateByGoogleDevice.changeTranslateApiLanguage(languageItem.translateLanguage, currentTargetLanguageItem.translateLanguage);
 
+    isDropdownAnimating = true;
     setState(() {
     });
   }
   onSelectedTargetDropdownMenuItem(LanguageItem languageItem){
     currentTargetLanguageItem = languageItem;
     translateByGoogleDevice.changeTranslateApiLanguage(currentSourceLanguageItem.translateLanguage, languageItem.translateLanguage);
+
+    isDropdownAnimating = true;
     setState(() {
     });
   }
@@ -445,31 +485,36 @@ class _MainScreenState extends State<MainScreen> {
   Widget _dropdownMenuInput() {
     return SizedBox(
       width: 100,
-      child: DropdownButton(
-        isExpanded: true,
-        items: languageDatas.languageMenuItems,
-        value: currentSourceLanguageItem.menuDisplayStr,
-        onChanged: (value) async{
-          LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
-          await onSelectedSourceDropdownMenuItem(languageItem);
-          setState(() {
-          });
-        },
+      height: 50,
+      child: Card(
+        child: DropdownButton(
+          isExpanded: true,
+          alignment: Alignment.center,
+          items: languageDatas.languageMenuItems,
+          value: currentSourceLanguageItem.menuDisplayStr,
+          onChanged: (value) async{
+            LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
+            setState(() {
+            });
+            onSelectedSourceDropdownMenuItem(languageItem);
+          },
+        ),
       ),
     );
   }
   Widget _dropdownMenuOutput() {
     return SizedBox(
       width: 100,
+      height: 50,
       child: DropdownButton(
         isExpanded: true,
         items: languageDatas.languageMenuItems,
         value: currentTargetLanguageItem.menuDisplayStr,
         onChanged: (value) async{
           LanguageItem languageItem = languageDatas.findLanguageItemByMenuDisplayStr(value!);
-
+          setState(() {
+          });
           onSelectedTargetDropdownMenuItem(languageItem);
-          setState(() {});
         },
       ),
     );
@@ -489,10 +534,9 @@ class _MainScreenState extends State<MainScreen> {
 
   //TODO : 블루투스 관련 기능
   Widget bluetoothDeviceSelectBtn(BuildContext context) {
-    return ElevatedButton(
-      child: Icon(Icons.bluetooth_searching),
-      style: standardBtnStyle(),
-      onPressed: () async {
+    return InkWell(
+      child: Icon(Icons.bluetooth_searching, color: Colors.white, size: 25,),
+      onTap: () async {
         await onClickedOpenDeviceSelectScreen();
       },
     );
@@ -505,8 +549,10 @@ class _MainScreenState extends State<MainScreen> {
           builder: (context, snapshot) {
             Color rampColor;
             String deviceName = bluetoothControl.selectedDeviceForm?.device.name ?? "";
-            double iconSize = 15;
+            BluetoothDeviceState deviceState;
+            double iconSize = 20;
             if (snapshot.hasData) {
+              deviceState = snapshot.data!;
               switch (snapshot.data) {
                 case BluetoothDeviceState.connected:
                   rampColor = Colors.lightGreenAccent;
@@ -518,15 +564,19 @@ class _MainScreenState extends State<MainScreen> {
                   rampColor = Colors.orange;
               }
             } else {
-              rampColor = Colors.yellow;
+              rampColor = Colors.transparent;
             }
-            return Column(
-              children: [
-                bluetoothControl.selectedDeviceForm != null ? SizedBox(height: 2,) : Container(),
-                Icon(Icons.circle, color: rampColor, size: iconSize,),
-                bluetoothControl.selectedDeviceForm != null ? SizedBox(height: 2,) : Container(),
-                bluetoothControl.selectedDeviceForm != null ? Text(deviceName, style: TextStyle(fontSize: 8, color: Colors.white), textAlign: TextAlign.center,): Container(),
-              ],
+            return IntrinsicWidth(
+              child: Card(
+                color: Colors.white,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Icon(Icons.circle, color: rampColor, size: iconSize,),
+                    bluetoothControl.selectedDeviceForm != null ? Text("$deviceName  ", style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.w400)): Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.w400)),
+                  ],
+                ),
+              ),
             );
           },
         );
@@ -574,8 +624,6 @@ class _MainScreenState extends State<MainScreen> {
       String fullMsg = getFullMsg(currentTargetLanguageItem ,translatedWords);
       await sendMessageToSelectedDevice(fullMsg);
     }
-    print("-----------------------전송 끝------------------------");
-    _onClickedTextToSpeechBtn();
   }
   sendMessageToSelectedDevice(String fullMsgToSend) async{
     try {
@@ -586,11 +634,13 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   onClickedOpenDeviceSelectScreen() async{
+
     bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
     if (!hasPermission) {
       print("권한에 문제가있음");
       return;
     }
+    simpleLoadingDialog(context, "블루투스 켜져있는지 확인중");
     _bluetoothControl.flutterBlue.state.listen((state) async {
       if (state == BluetoothState.off) {
         print("블루투스 켤게요");
@@ -600,6 +650,8 @@ class _MainScreenState extends State<MainScreen> {
         Navigator.of(context).pop();
       }
     });
+    Navigator.of(context).pop();
+
     _bluetoothControl.startScan();
     showModalBottomSheet(
       useSafeArea: true,
