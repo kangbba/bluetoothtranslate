@@ -117,35 +117,30 @@ class _MainScreenState extends State<MainScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Text("banGawer", style: TextStyle(color: Colors.white, fontSize: 23),),
                 SizedBox(width: 35,),
-                Text("banGawer", style: TextStyle(color: Colors.white, fontSize: 25),),
-                Column(
-                  children: [
-                    bluetoothDeviceSelectBtn(context),
-                  ],
-                ),
+                bluetoothDeviceSelectBtn(context),
               ],
             ),
           ),
-          toolbarHeight: 90,
+          toolbarHeight: 70,
           backgroundColor: Colors.indigo[900],
         ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
-              SizedBox(height : 30, child: Container()),
+              SizedBox(height : 10, child: Container()),
               Expanded(
-                  flex: 1, child: _translateFieldInput()),
+                  flex: 3, child: _translateFieldInput()),
               const SimpleSeparator(color: Colors.grey, height: 1, top: 0, bottom: 0),
               SizedBox(height : 30, child: _translatedTextDescriptions()),
               Expanded(
-                flex: 1,
+                flex: 3,
                 child: _translateFieldOutput()),
-              const SimpleSeparator(color: Colors.grey,height: 1, top: 0, bottom: 20),
-              currentDeviceStateRamp(),
-              SizedBox(
-                height: 100,
+              const SimpleSeparator(color: Colors.grey,height: 1, top: 0, bottom: 16),
+              Expanded(
+                flex: 1,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
@@ -160,7 +155,7 @@ class _MainScreenState extends State<MainScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: SizedBox(height: 150, child: Align(alignment: Alignment.center, child: _audioRecordBtn(context))),
+        bottomNavigationBar: SizedBox(height: 125, child: Align(alignment: Alignment.center, child: _audioRecordBtn(context))),
       ),
     );
   }
@@ -230,14 +225,14 @@ class _MainScreenState extends State<MainScreen> {
           padding: const EdgeInsets.all(8.0),
           child: TextField(
             readOnly: true,
-            style: TextStyle(fontSize: 25),
+            style: TextStyle(fontSize: 18),
             keyboardType: TextInputType.multiline,
             maxLines: 4,
             controller: inputTextEditController,
             decoration: InputDecoration(
               border : InputBorder.none,
               hintText: isRecording ? "" : "마이크 버튼을 눌러 번역할 내용을 말해보세요.",
-              hintStyle: TextStyle(fontSize: 14),
+              hintStyle: TextStyle(fontSize: 11),
             ),
           ),
         );
@@ -251,7 +246,7 @@ class _MainScreenState extends State<MainScreen> {
           padding: const EdgeInsets.all(8.0),
           child: TextField(
             readOnly: true,
-            style: TextStyle(fontSize: 25),
+            style: TextStyle(fontSize: 18),
             keyboardType: TextInputType.multiline,
             maxLines: 4,
             controller: outputTextEditController,
@@ -305,14 +300,14 @@ class _MainScreenState extends State<MainScreen> {
               child:
               ElevatedButton(
                 style: ButtonStyle(
-                  minimumSize: MaterialStateProperty.all(Size(60, 60)),
+                  minimumSize: MaterialStateProperty.all(Size(55, 55)),
                   shape: MaterialStateProperty.all(CircleBorder()),
                   backgroundColor: MaterialStateProperty.all(isRecording ? Colors.indigo : Colors.indigo),
                 ),
                 onPressed: onPressedAudioRecordBtn,
                 child: isRecording ?
-                LoadingAnimationWidget.staggeredDotsWave(size: 36, color: Colors.white) :
-                Icon(Icons.mic, color:  Colors.white, size: 36,),
+                LoadingAnimationWidget.staggeredDotsWave(size: 33, color: Colors.white) :
+                Icon(Icons.mic, color:  Colors.white, size: 33,),
               ),
             ),
           ],
@@ -544,7 +539,7 @@ class _MainScreenState extends State<MainScreen> {
   //TODO : 블루투스 관련 기능
   Widget bluetoothDeviceSelectBtn(BuildContext context) {
     return InkWell(
-      child: Icon(Icons.bluetooth_searching, color: Colors.white, size: 25,),
+      child: currentDeviceStateRamp(),
       onTap: () async {
         await onClickedOpenDeviceSelectScreen();
       },
@@ -559,7 +554,7 @@ class _MainScreenState extends State<MainScreen> {
             Color rampColor;
             String deviceName = bluetoothControl.selectedDeviceForm?.device.name ?? "";
             BluetoothDeviceState deviceState;
-            double iconSize = 20;
+            double iconSize = 18;
             if (snapshot.hasData) {
               deviceState = snapshot.data!;
               switch (snapshot.data) {
@@ -576,19 +571,13 @@ class _MainScreenState extends State<MainScreen> {
               rampColor = Colors.red;
             }
             return IntrinsicWidth(
-              child: Card(
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Icon(Icons.circle, color: rampColor, size: iconSize,),
-                      SizedBox(width: 3,),
-                      bluetoothControl.selectedDeviceForm != null ? Text("$deviceName  ", style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.w400)): Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.w400)),
-                    ],
-                  ),
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Icon(Icons.circle, color: rampColor, size: iconSize,),
+                  SizedBox(width: 5,),
+                  bluetoothControl.selectedDeviceForm != null ? Text("$deviceName  ", style: TextStyle(fontSize: 11, color: Colors.white)): Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.white)),
+                ],
               ),
             );
           },
@@ -613,8 +602,8 @@ class _MainScreenState extends State<MainScreen> {
     //빈도조절 추가.
     textToSpeechControl.changeLanguage(currentTargetLanguageItem.speechLocaleId!);
 
-    List<TranslateTool> trToolsOrderStandard = [TranslateTool.googleServer, TranslateTool.papagoServer, TranslateTool.googleDevice];
-    List<TranslateTool> trToolsOrderChina = [TranslateTool.papagoServer, TranslateTool.googleDevice, TranslateTool.googleServer];
+    List<TranslateTool> trToolsOrderStandard = [TranslateTool.googleServer, TranslateTool.papagoServer];
+    List<TranslateTool> trToolsOrderChina = [TranslateTool.papagoServer, TranslateTool.googleDevice];
 
     String? translatedWords;
     TranslateTool? trToolConfirmed;
