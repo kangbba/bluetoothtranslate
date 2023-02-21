@@ -70,6 +70,12 @@ class _MainScreenState extends State<MainScreen> {
 
   bool isDropdownAnimating = false;
 
+  //recent datas
+  bool recentDataExist = false;
+  late String _recentRecognizedWords;
+  late  String _recentTranslatedWords;
+  late  LanguageItem _recentSourceLanguageItem;
+  late  LanguageItem _recentTargetLanguageItem;
 
 
   void refresh() {
@@ -397,6 +403,14 @@ class _MainScreenState extends State<MainScreen> {
     String translatedWords = await tryTranslateProperly(currentSourceLanguageItem, currentTargetLanguageItem, recentRecognizedWords);
     outputTextEditController.text = translatedWords;
 
+    //recent data write
+    recentDataExist = true;
+    _recentRecognizedWords = recentRecognizedWords;
+    _recentTranslatedWords = translatedWords;
+    _recentSourceLanguageItem = currentSourceLanguageItem;
+    _recentTargetLanguageItem = currentTargetLanguageItem;
+
+
     bool isTranslateSucceed = translatedWords.isNotEmpty;
     if(!isTranslateSucceed)
     {
@@ -406,14 +420,12 @@ class _MainScreenState extends State<MainScreen> {
     _onClickedTextToSpeechBtn();
 
     //번역내용 전송하기
-    if(_bluetoothControl.selectedDeviceForm != null)
-    {
-      String fullMsg = getFullMsg(currentTargetLanguageItem ,translatedWords);
-      await sendMessageToSelectedDevice(fullMsg);
-    }
+    String fullMsg = getFullMsg(currentTargetLanguageItem ,translatedWords);
+    await sendMessageToSelectedDevice(fullMsg);
     setState(() {
       _onClickedDropdownMenuSwitchBtn();
     });
+
   }
 
   Future<String?> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
@@ -533,13 +545,19 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onClickedTextToSpeechBtn() {
-    textToSpeechControl.speak(outputTextEditController.text);
+    if(!recentDataExist)
+    {
+       return;
+    }
+    textToSpeechControl.speak(_recentTranslatedWords);
+    String fullMsg = getFullMsg(_recentTargetLanguageItem, _recentTranslatedWords);
+    sendMessageToSelectedDevice(fullMsg);
   }
 
   //TODO : 블루투스 관련 기능
   Widget bluetoothDeviceSelectBtn(BuildContext context) {
     return InkWell(
-      child: currentDeviceStateRamp(),
+      child: IntrinsicWidth(child: SizedBox(height: 50, child: currentDeviceStateRamp())),
       onTap: () async {
         await onClickedOpenDeviceSelectScreen();
       },
@@ -548,40 +566,25 @@ class _MainScreenState extends State<MainScreen> {
   Widget currentDeviceStateRamp() {
     return Consumer<BluetoothControl>(
       builder: (context, bluetoothControl, _) {
-        return StreamBuilder<BluetoothDeviceState>(
-          stream: bluetoothControl.selectedDeviceForm?.device.state,
-          builder: (context, snapshot) {
-            Color rampColor;
-            String deviceName = bluetoothControl.selectedDeviceForm?.device.name ?? "";
-            BluetoothDeviceState deviceState;
-            double iconSize = 18;
-            if (snapshot.hasData) {
-              deviceState = snapshot.data!;
-              switch (snapshot.data) {
-                case BluetoothDeviceState.connected:
-                  rampColor = Colors.lightGreenAccent;
-                  break;
-                case BluetoothDeviceState.disconnected:
-                  rampColor = Colors.red;
-                  break;
-                default:
-                  rampColor = Colors.orange;
-              }
-            } else {
+          DeviceStatus? deviceStatus = bluetoothControl.selectedDeviceForm?.deviceStatus;
+          String deviceName = bluetoothControl.selectedDeviceForm?.device.name ?? "";
+          Color rampColor;
+          double iconSize = 18;
+          switch (deviceStatus) {
+            case DeviceStatus.connectedDevice:
+              rampColor = Colors.lightGreenAccent;
+              break;
+            default:
               rampColor = Colors.red;
-            }
-            return IntrinsicWidth(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Icon(Icons.circle, color: rampColor, size: iconSize,),
-                  SizedBox(width: 5,),
-                  bluetoothControl.selectedDeviceForm != null ? Text("$deviceName  ", style: TextStyle(fontSize: 11, color: Colors.white)): Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.white)),
-                ],
-              ),
-            );
-          },
-        );
+          }
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Icon(Icons.circle, color: rampColor, size: iconSize,),
+              SizedBox(width: 5,),
+              (bluetoothControl.selectedDeviceForm != null)  && deviceStatus == DeviceStatus.connectedDevice ? Text("$deviceName  ", style: TextStyle(fontSize: 11, color: Colors.white)): Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.white)),
+            ],
+          );
       },
     );
   }
@@ -603,7 +606,7 @@ class _MainScreenState extends State<MainScreen> {
     textToSpeechControl.changeLanguage(currentTargetLanguageItem.speechLocaleId!);
 
     List<TranslateTool> trToolsOrderStandard = [TranslateTool.googleServer, TranslateTool.papagoServer];
-    List<TranslateTool> trToolsOrderChina = [TranslateTool.papagoServer, TranslateTool.googleDevice];
+    List<TranslateTool> trToolsOrderChina = [TranslateTool.papagoServer, TranslateTool.googleServer];
 
     String? translatedWords;
     TranslateTool? trToolConfirmed;
@@ -628,7 +631,10 @@ class _MainScreenState extends State<MainScreen> {
   }
   sendMessageToSelectedDevice(String fullMsgToSend) async{
     try {
-      await _bluetoothControl.sendMessage(_bluetoothControl.selectedDeviceForm!.device, fullMsgToSend);
+      if(_bluetoothControl.selectedDeviceForm != null) {
+        await _bluetoothControl.sendMessage(
+            _bluetoothControl.selectedDeviceForm!.device, fullMsgToSend);
+      }
     } catch (e) {
       throw Exception("메세지 전송 실패 이유 : $e");
     }

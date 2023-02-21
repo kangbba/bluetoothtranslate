@@ -1,6 +1,7 @@
 import 'dart:ffi';
 
 import 'package:bluetoothtranslate/simple_ask_dialog.dart';
+import 'package:bluetoothtranslate/simple_ask_dialog2.dart';
 import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/simple_separator.dart';
@@ -159,15 +160,41 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
   }
   onClickedConnectDevice(BuildContext context, BluetoothControl bluetoothControl, DeviceForm deviceForm) async
   {
-    simpleLoadingDialog(context, "");
-    bool success = await bluetoothControl.connectDevice(deviceForm, 4);
-    setState(() { });
+    bool bluetoothTurnOn= false;
+    if ((await _bluetoothControl.flutterBlue.state.first) != BluetoothState.on)
+    {
+      bool? bluetoothResponse = await simpleAskDialog2(context, "Bluetooth 기능이 필요합니다.", "허용", "거부");
+      if(bluetoothResponse != null && bluetoothResponse)
+      {
+        bluetoothTurnOn = true;
+        simpleLoadingDialog(context, ("블루투스를 켜는중"));
+        await _bluetoothControl.flutterBlue.turnOn();
+        Navigator.of(context).pop();
+        _bluetoothControl.startScan();
+      }
+      else{
+        bluetoothTurnOn = false;
+      }
+    }
+    else{
+      bluetoothTurnOn = true;
+    }
+    if(!bluetoothTurnOn)
+    {
+      print("bluetooth 허용되지않음");
+      return;
+    }
+    simpleLoadingDialog(context, ("블루투스를 켜는중"));
+    bool success = await bluetoothControl.connectDevice(deviceForm, 3);
     Navigator.of(context).pop();
+    setState(() { });
     if(success) {
       setState(() { });
       Navigator.of(context).pop();
     }
     else {
+      await simpleConfirmDialog(context, "연결에 실패했습니다. 다시 시도해보세요", "OK");
+      _bluetoothControl.startScan();
       setState(() { });
     }
   }
