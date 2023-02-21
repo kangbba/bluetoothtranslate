@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:bluetoothtranslate/bluetooth_control.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
 import 'package:bluetoothtranslate/simple_ask_dialog.dart';
+import 'package:bluetoothtranslate/simple_ask_dialog2.dart';
 import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/simple_separator.dart';
@@ -25,6 +26,7 @@ import 'package:google_cloud_translation/google_cloud_translation.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_ripple_animation/simple_ripple_animation.dart';
 
 import 'audio_wave_effect.dart';
@@ -38,6 +40,10 @@ enum TranslateTool
   googleDevice,
 }
 class MainScreen extends StatefulWidget {
+
+  final SharedPreferences prefs;
+  MainScreen({required this.prefs});
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -319,37 +325,27 @@ class _MainScreenState extends State<MainScreen> {
 
   // isRecording ? LoadingAnimationWidget.beat(size: 50, color: Colors.grey) : Container(width: 36, height: 36,),
   onPressedAudioRecordBtn() async{
-    if (await ConnectivityWrapper.instance.isConnected) {
-      bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
-      if (!hasPermission) {
-        PermissionController.showNoPermissionSnackBar(context);
-      }
-      else {
-        print("devlog bluetooth state :  ${_bluetoothControl.flutterBlue.state}");
-        if(_bluetoothControl.selectedDeviceForm == null) {
-          await simpleAskDialog(context, "블루투스 기기 연결이 안되었습니다.", "블루투스 기기에 연결하시겠습니까?");
-          onClickedOpenDeviceSelectScreen();
-        }
-        else{
-          // simpleLoadingDialog(context, "디바이스 재연결중");
-          // await _bluetoothControl.connectDevice(_bluetoothControl.selectedDeviceForm!, 3);
-          // Navigator.of(context).pop();
-          if(!isRecording)
-          {
-            isRecording = true;
-            startListening();
-          }
-          else{
-            isRecording = false;
-            stopListening();
-          }
-          setState(() {});
-        };
-      }
+    bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
+    if (!hasPermission) {
+      PermissionController.showNoPermissionSnackBar(context);
+      return;
+    }
+    bool isInternetConnected = await ConnectivityWrapper.instance.isConnected;
+    if (!isInternetConnected) {
+      await simpleConfirmDialog(context, "인터넷 연결이 필요합니다!", "확인");
+      //todo 인터넷연결안됨 처리.
+      return;
+    }
+    if(!isRecording)
+    {
+      isRecording = true;
+      startListening();
     }
     else{
-      showSimpleSnackBar(context, "인터넷 연결 안되었어요", 1);
+      isRecording = false;
+      stopListening();
     }
+    setState(() {});
   }
 
   startListening() async{
@@ -397,23 +393,27 @@ class _MainScreenState extends State<MainScreen> {
   }
   whenSpeechEnd(String recentRecognizedWords) async
   {
-    if(_bluetoothControl.selectedDeviceForm == null)
-    {
-      bool? response = await simpleAskDialog(context, "기기 연결이 안되어있습니다", "블루투스 기기에 연결하시겠습니까?");
-      if(response == true)
-      {
-        await onClickedOpenDeviceSelectScreen();
-      }
-    }
-    else{
-      await trySendMsgToDevice(recentRecognizedWords);
-      _onClickedTextToSpeechBtn();
-      _onClickedDropdownMenuSwitchBtn();
-      setState(() {
+    //적절히 번역함.
+    String translatedWords = await tryTranslateProperly(currentSourceLanguageItem, currentTargetLanguageItem, recentRecognizedWords);
+    outputTextEditController.text = translatedWords;
 
-      });
-     // await sendMessageToDevice(targetLanguageItemToUse, translatedWords);
+    bool isTranslateSucceed = translatedWords.isNotEmpty;
+    if(!isTranslateSucceed)
+    {
+      return;
     }
+    //번역내용 읽어주기
+    _onClickedTextToSpeechBtn();
+
+    //번역내용 전송하기
+    if(_bluetoothControl.selectedDeviceForm != null)
+    {
+      String fullMsg = getFullMsg(currentTargetLanguageItem ,translatedWords);
+      await sendMessageToSelectedDevice(fullMsg);
+    }
+    setState(() {
+      _onClickedDropdownMenuSwitchBtn();
+    });
   }
 
   Future<String?> _translateTextWithCurrentLanguage(String inputStr, TranslateTool translateTool) async
@@ -592,11 +592,11 @@ class _MainScreenState extends State<MainScreen> {
     String fullMsgToSend = '$arduinoUniqueId:$translatedMsg;';
     return fullMsgToSend;
   }
-  trySendMsgToDevice (String recognizedWords) async{
+  Future<String> tryTranslateProperly (LanguageItem sourceLanguageItem, LanguageItem targetLanguageItem, String recognizedWords) async{
 
     print("-----------------------번역시도------------------------");
     bool isContainChina =
-        (currentSourceLanguageItem.translateLanguage == TranslateLanguage.chinese) || (currentTargetLanguageItem.translateLanguage == TranslateLanguage.chinese);
+        (sourceLanguageItem.translateLanguage == TranslateLanguage.chinese) || (targetLanguageItem.translateLanguage == TranslateLanguage.chinese);
 
 
     //빈도조절 추가.
@@ -622,10 +622,9 @@ class _MainScreenState extends State<MainScreen> {
     print("-----------------------번역 끝------------------------");
     if(trToolConfirmed != null && translatedWords != null)
     {
-      outputTextEditController.text = translatedWords;
-      String fullMsg = getFullMsg(currentTargetLanguageItem ,translatedWords);
-      await sendMessageToSelectedDevice(fullMsg);
+      return translatedWords;
     }
+    return "";
   }
   sendMessageToSelectedDevice(String fullMsgToSend) async{
     try {
@@ -636,23 +635,39 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   onClickedOpenDeviceSelectScreen() async{
-
     bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
     if (!hasPermission) {
       print("권한에 문제가있음");
       return;
     }
-    simpleLoadingDialog(context, "블루투스 켜져있는지 확인중");
-    _bluetoothControl.flutterBlue.state.listen((state) async {
-      if (state == BluetoothState.off) {
-        print("블루투스 켤게요");
-        await simpleConfirmDialog(context, "블루투스 컴색을위해 블루투스를 켭니다", "message");
-        simpleLoadingDialog(context, "블루투스를 켜는중");
-        bool response = await _bluetoothControl.flutterBlue.turnOn();
+    // print("devlog bluetooth state :  ${_bluetoothControl.flutterBlue.state}");
+
+
+// Request to turn on Bluetooth within an app
+
+    bool bluetoothTurnOn;
+    if ((await _bluetoothControl.flutterBlue.state.first) != BluetoothState.on)
+    {
+      bool? bluetoothResponse = await simpleAskDialog2(context, "Bluetooth 기능이 필요합니다.", "허용", "거부");
+      if(bluetoothResponse != null && bluetoothResponse)
+      {
+        bluetoothTurnOn = true;
+        simpleLoadingDialog(context, ("블루투스를 켜는중"));
+        await _bluetoothControl.flutterBlue.turnOn();
         Navigator.of(context).pop();
       }
-    });
-    Navigator.of(context).pop();
+      else{
+        bluetoothTurnOn = false;
+      }
+    }
+    else{
+      bluetoothTurnOn = true;
+    }
+    if(!bluetoothTurnOn)
+    {
+      print("bluetooth 허용되지않음");
+      return;
+    }
 
     _bluetoothControl.startScan();
     showModalBottomSheet(

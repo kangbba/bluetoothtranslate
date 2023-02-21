@@ -194,7 +194,11 @@ class BluetoothControl extends ChangeNotifier
           print("새로운 디바이스에 연결 성공");
           _selectedDeviceForm = deviceForm; // 연결성공시 할당.
           _selectedDeviceForm!.setDeviceStatus(DeviceStatus.connectedDevice);
-
+          try {
+            await sendMessage(selectedDeviceForm!.device, "500:c;");
+          } catch (e) {
+            throw Exception("메세지 전송 실패 이유 : $e");
+          }
           // 연결 상태 변화 감지
           notifyListeners();
           return true;
