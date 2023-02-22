@@ -566,24 +566,19 @@ class _MainScreenState extends State<MainScreen> {
   Widget currentDeviceStateRamp() {
     return Consumer<BluetoothControl>(
       builder: (context, bluetoothControl, _) {
-          DeviceStatus? deviceStatus = bluetoothControl.selectedDeviceForm?.deviceStatus;
-          String deviceName = bluetoothControl.selectedDeviceForm?.device.name ?? "";
-          Color rampColor;
-          double iconSize = 18;
-          switch (deviceStatus) {
-            case DeviceStatus.connectedDevice:
-              rampColor = Colors.lightGreenAccent;
-              break;
-            default:
-              rampColor = Colors.red;
-          }
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Icon(Icons.circle, color: rampColor, size: iconSize,),
-              SizedBox(width: 5,),
-              (bluetoothControl.selectedDeviceForm != null)  && deviceStatus == DeviceStatus.connectedDevice ? Text("$deviceName  ", style: TextStyle(fontSize: 11, color: Colors.white)): Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.white)),
-            ],
+          return FutureBuilder<BluetoothDevice?>(
+            future: bluetoothControl.getConnectedDevice(),
+            builder: (context, snapshot) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Icon(Icons.circle, color: Colors.black, size: 15,),
+                  SizedBox(width: 5,),
+                  snapshot.hasData ? Text("${snapshot.data!.name} ", style: TextStyle(fontSize: 11, color: Colors.white))
+                      : Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.white)),
+                ],
+              );
+            }
           );
       },
     );
@@ -631,9 +626,9 @@ class _MainScreenState extends State<MainScreen> {
   }
   sendMessageToSelectedDevice(String fullMsgToSend) async{
     try {
-      if(_bluetoothControl.selectedDeviceForm != null) {
-        await _bluetoothControl.sendMessage(
-            _bluetoothControl.selectedDeviceForm!.device, fullMsgToSend);
+      BluetoothDevice? connectedDevice = await _bluetoothControl.getConnectedDevice();
+      if(connectedDevice != null) {
+        await _bluetoothControl.sendMessage(connectedDevice, fullMsgToSend);
       }
     } catch (e) {
       throw Exception("메세지 전송 실패 이유 : $e");
