@@ -130,7 +130,6 @@ class _MainScreenState extends State<MainScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text("banGawer", style: TextStyle(color: Colors.white, fontSize: 23),),
-                SizedBox(width: 35,),
                 bluetoothDeviceSelectBtn(context),
               ],
             ),
@@ -557,7 +556,7 @@ class _MainScreenState extends State<MainScreen> {
   //TODO : 블루투스 관련 기능
   Widget bluetoothDeviceSelectBtn(BuildContext context) {
     return InkWell(
-      child: IntrinsicWidth(child: SizedBox(height: 50, child: currentDeviceStateRamp())),
+      child: currentDeviceStateRamp(),
       onTap: () async {
         await onClickedOpenDeviceSelectScreen();
       },
@@ -566,16 +565,28 @@ class _MainScreenState extends State<MainScreen> {
   Widget currentDeviceStateRamp() {
     return Consumer<BluetoothControl>(
       builder: (context, bluetoothControl, _) {
-          return FutureBuilder<BluetoothDevice?>(
-            future: bluetoothControl.getConnectedDevice(),
+          return FutureBuilder<bool>(
+            future: bluetoothControl.checkIfRecentDeviceReadyToSend(),
             builder: (context, snapshot) {
+              Color rampColor;
+              String ment = "";
+              if(snapshot.hasData)
+              {
+                bool readyToSend = snapshot.data!;
+                rampColor = readyToSend ? Colors.lightGreenAccent : Colors.red;
+                //recentBluetoothDevice! 가 null이면 보나마나 checkIfReadyToSendDevice 이 false를 뱉게 해두었기 떄문.
+                ment = readyToSend ? bluetoothControl.recentBluetoothDevice!.name : "Disconnected";
+              }
+              else{
+                ment = "Disconnected";
+                rampColor = Colors.orange;
+              }
               return Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Icon(Icons.circle, color: Colors.black, size: 15,),
+                  Icon(Icons.circle, color: rampColor, size: 15,),
                   SizedBox(width: 5,),
-                  snapshot.hasData ? Text("${snapshot.data!.name} ", style: TextStyle(fontSize: 11, color: Colors.white))
-                      : Text("Disconnected", style: TextStyle(fontSize: 12, color: Colors.white)),
+                  Text(ment, style: TextStyle(fontSize: 13, color: Colors.white)),
                 ],
               );
             }
@@ -626,7 +637,7 @@ class _MainScreenState extends State<MainScreen> {
   }
   sendMessageToSelectedDevice(String fullMsgToSend) async{
     try {
-      BluetoothDevice? connectedDevice = await _bluetoothControl.getConnectedDevice();
+      BluetoothDevice? connectedDevice = _bluetoothControl.recentBluetoothDevice;
       if(connectedDevice != null) {
         await _bluetoothControl.sendMessage(connectedDevice, fullMsgToSend);
       }
@@ -636,13 +647,13 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   onClickedOpenDeviceSelectScreen() async{
+
     bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
     if (!hasPermission) {
       print("권한에 문제가있음");
       return;
     }
     // print("devlog bluetooth state :  ${_bluetoothControl.flutterBlue.state}");
-
 
 // Request to turn on Bluetooth within an app
 
@@ -681,4 +692,16 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-
+//
+//
+// bool bluetoothTurnOn = await isBluetoothTurnOn();
+// if(!bluetoothTurnOn)
+// {
+// bool dialogResponse = await bluetoothTurnOnDialog(context);
+// if(dialogResponse)
+// {
+// }
+// else{
+// return;
+// }
+// }

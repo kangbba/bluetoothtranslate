@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ffi';
 
 import 'package:bluetoothtranslate/simple_ask_dialog.dart';
@@ -27,13 +28,17 @@ class DeviceSelectScreen extends StatefulWidget {
 class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
 
   late BluetoothControl _bluetoothControl = widget.bluetoothControl;
+
   @override
   void initState() {
     super.initState();
+    startMonitoringConnection();
   }
+
   @override
   void dispose() {
     // TODO: implement dispose
+    stopMonitoringConnection();
     _bluetoothControl.stopScan();
     print("Device Select Screen에서 stop scan");
     super.dispose();
@@ -51,18 +56,23 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
             builder: (context, bluetoothControl, child) {
               return Stack(
                 children: [
-                  Positioned(top: 8, right: 8, child: _cancelBtn(context)),
+                  Positioned(top: 8, left: 8,
+                      child: _exitBtn(context)),
+                  Positioned(top: 8, right: 10,
+                      child: _refreshBtn(bluetoothControl)),
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22, vertical: 12),
                     child: Column(
                       children: [
                         SizedBox(
-                          height : 34,
-                          child: Text("Please select your device" ,
-                              style: TextStyle(fontSize: 16, color: Colors.black87),
-                              textAlign: TextAlign.center),
+                          height: 34,
+                          child: Container(),
                         ),
-                        SimpleSeparator(color: Colors.deepPurpleAccent, height: .2, top: 0, bottom: 8),
+                        SimpleSeparator(color: Colors.deepPurpleAccent,
+                            height: .2,
+                            top: 0,
+                            bottom: 8),
                         deviceListView_selected(bluetoothControl),
                         SizedBox(height: 10,),
                         Expanded(
@@ -70,9 +80,14 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    Text("Other Devices (${bluetoothControl.recentScanResult.length})", textAlign: TextAlign.left),
+                                    Text("Other Devices (${bluetoothControl
+                                        .recentScanResult.length})",
+                                        textAlign: TextAlign.left),
                                     SizedBox(width: 20,),
-                                    bluetoothControl.isScanning ? loadingAnimationWhenScan(bluetoothControl) : _refreshBtn(bluetoothControl)
+                                    bluetoothControl.isScanning
+                                        ? loadingAnimationWhenScan(
+                                        bluetoothControl)
+                                        : Container(),
                                   ],
                                 ),
                                 SizedBox(height: 8,),
@@ -91,36 +106,19 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
   }
 
   Widget deviceListView_selected(BluetoothControl bluetoothControl) {
-    return FutureBuilder<BluetoothDevice?>(
-      future: bluetoothControl.getConnectedDevice(),
-      builder: (BuildContext context, AsyncSnapshot<BluetoothDevice?> snapshot) {
-        if(!snapshot.hasData)
-        {
-          return Container();
-        }
-        else{
-          if (snapshot.connectionState == ConnectionState.done) {
-            BluetoothDevice connectedDevice = snapshot.data!;
-            // 여기서 연결된 장치 목록을 사용하여 UI를 업데이트합니다.
-            return Column(
-                children: [
-                  SizedBox(width: double.infinity, height : 22, child: Text("Connected", textAlign: TextAlign.left,)),
-                  deviceListTile(context, connectedDevice, true),
-                ]
-            );
-          } else if (snapshot.connectionState == ConnectionState.waiting) {
-            // 연결된 장치 목록을 가져오는 중임을 나타내는 UI를 반환합니다.
-            return CircularProgressIndicator();
-          } else {
-            // 연결된 장치 목록을 가져오는 도중 에러가 발생하면, 해당 에러를 나타내는 UI를 반환합니다.
-            return Text('Error: ${snapshot.error}');
-          }
-
-        }
-
-      },
-    );
+    return bluetoothControl.recentBluetoothDevice != null ?
+    Column(
+        children: [
+          SizedBox(width: double.infinity,
+              height: 22,
+              child: Text("Connected", textAlign: TextAlign.left,
+                style: TextStyle(fontSize: 15, color: Colors.black87),)),
+          deviceListTile(
+              context, bluetoothControl.recentBluetoothDevice!, true),
+        ]
+    ) : Container();
   }
+
   Widget deviceListView_otherDevices(BluetoothControl bluetoothControl) {
     // SizedBox(width: double.infinity, child: Text("Connected", textAlign: TextAlign.left,)),
     return Flexible(
@@ -128,73 +126,130 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
           shrinkWrap: true,
           itemCount: bluetoothControl.recentScanResult.length,
           itemBuilder: (context, i) {
-            return deviceListTile(context, bluetoothControl.recentScanResult[i].device, false);
+            return deviceListTile(
+                context, bluetoothControl.recentScanResult[i].device, false);
           }),);
   }
 
 
   InkWell _refreshBtn(BluetoothControl bluetoothControl) {
     return InkWell(
-      child: Icon(Icons.refresh),
-      onTap : (){
-        bluetoothControl.stopScan();
+      child: SizedBox(width: 35,
+          height: 35,
+          child: Icon(Icons.refresh, size: 30, color: Colors.black87,)),
+      onTap: () {
         bluetoothControl.startScan();
       },
     );
   }
 
-  Widget _cancelBtn(BuildContext context) {
+  Widget _exitBtn(BuildContext context) {
     return InkWell(
-        onTap: (){
-          Navigator.of(context).pop();
-          setState(() {
-          });
-        },
-        child: Icon(Icons.navigate_next_rounded, size: 36,),);
+      onTap: () {
+        _onPressedExitBtn();
+      },
+      child: SizedBox(width: 35,
+          height: 35,
+          child: Icon(Icons.arrow_back_ios_new_sharp, size: 23,
+            color: Colors.black87,)),);
   }
 
-  TextStyle contentTextStyle(double fontSize, Color color)
-  {
+  _onPressedExitBtn() {
+    _bluetoothControl.stopScan();
+    Navigator.of(context).pop();
+  }
+
+  TextStyle contentTextStyle(double fontSize, Color color) {
     return TextStyle(fontSize: fontSize, color: color);
   }
-  Widget getRssiIcon(int rssi)
-  {
-    if(rssi >= -40)
-    {
+
+  Widget getRssiIcon(int rssi) {
+    if (rssi >= -40) {
       return Icon(Icons.signal_cellular_alt_sharp);
     }
-    else if(rssi >= -50)
-    {
+    else if (rssi >= -50) {
       return Icon(Icons.signal_cellular_alt_2_bar_sharp);
     }
-    else if(rssi >= -60)
-    {
+    else if (rssi >= -60) {
       return Icon(Icons.signal_cellular_alt_1_bar_sharp);
     }
-    else{
+    else {
       return Icon(Icons.signal_cellular_no_sim_outlined, size: 15,);
     }
   }
-  Widget deviceListTile(BuildContext context, BluetoothDevice device, bool isForConnected) {
 
+  _onClickedDeviceListTile(BluetoothDevice device, bool isForConnected) async
+  {
+    // isForConnected == true 인것은 recentDevice != null 이였기때문에 올려준것뿐 이것이 실제 state == connect를 의미하지 않음
+    int rssi = 1;
+    String deviceName = device.name;
+    String deviceID = device.id.toString();
+    BluetoothDeviceState bluetoothDeviceState = await device.state.first;
+    print(
+        "디바이스 리스트타일을 눌렀음. 정보 : deviceName : $deviceName /연결여부 $bluetoothDeviceState");
+
+    bool isDeviceDisconnected = bluetoothDeviceState ==
+        BluetoothDeviceState.disconnected;
+    bool isDeviceConnected = bluetoothDeviceState ==
+        BluetoothDeviceState.connected;
+
+    if (isForConnected && !isDeviceConnected) {
+      print("리스트 위에있긴하지만 실제로 까보니 connceted가 아닌 경우");
+      await simpleConfirmDialog(context, "만료된 디바이스입니다. 다시 연결해주세요", "OK");
+      _bluetoothControl.startScan();
+      return;
+    }
+    if (isDeviceDisconnected) {
+      print("이 기기는 disconnceted이므로 연결시도해보겠음.");
+      simpleLoadingDialog(context, "로딩중");
+      try {
+        print("connect 2초간 시도");
+        await device.connect(timeout: Duration(milliseconds: 2500));
+        print("connect 2초의 시도완료");
+        Navigator.of(context).pop();
+        _bluetoothControl.startScan();
+      }
+      catch (e) {
+        Navigator.of(context).pop();
+        await simpleConfirmDialog(
+            context, "블루투스 기기연결에 실패했습니다. 다시시도해보세요.", "OK");
+        _bluetoothControl.startScan();
+        print("기기 연결 중 에러발생 $e");
+      }
+    }
+    else {
+      print("이 기기는 disconnceted 아니므로 연결시도 하지않겠음.");
+      _onPressedExitBtn();
+    }
+  }
+
+  Widget deviceListTile(BuildContext context, BluetoothDevice device,
+      bool isForConnected) {
     return Card(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10.0),
         ),
         child: FutureBuilder<int>(
-          future: device.readRssi(),
-          builder: (context, snapshot) {
-            return ListTile(
-                title: Text(device.name.isNotEmpty ? device.name : "no name", style: contentTextStyle(15,Colors.black87),),
-                subtitle: Text(device.id.toString(), style: contentTextStyle(10, Colors.black38),),
-                trailing: isForConnected ? Icon(Icons.check, color: Colors.lightGreen,) : (snapshot.hasData ? getRssiIcon(snapshot.data!) : getRssiIcon(0)),
-                onTap: () async {
-                  // await onClickedConnectDevice(context, bluetoothControl, deviceForm);
-                });
-          }
+            future: device.readRssi(),
+            builder: (context, snapshot) {
+              return ListTile(
+                  title: Text(device.name.isNotEmpty ? device.name : "no name",
+                    style: contentTextStyle(16, Colors.black87),),
+                  subtitle: Text(device.id.toString(),
+                    style: contentTextStyle(10, Colors.black38),),
+                  trailing: isForConnected
+                      ? Icon(Icons.check, color: Colors.lightGreen, size: 30,)
+                      : (snapshot.hasData
+                      ? getRssiIcon(snapshot.data!)
+                      : getRssiIcon(0)),
+                  onTap: () async {
+                    _onClickedDeviceListTile(device, isForConnected);
+                  });
+            }
         )
     );
   }
+
   // onClickedConnectDevice(BuildContext context, BluetoothControl bluetoothControl, DeviceForm deviceForm) async
   // {
   //   bool bluetoothTurnOn= false;
@@ -315,15 +370,32 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
   // }
   Widget loadingAnimationWhenScan(BluetoothControl bluetoothControl) {
     return
-      SizedBox(
-        height : 30,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(width: 10),
-            bluetoothControl.isScanning ? LoadingAnimationWidget.prograssiveDots(size: 20, color: Colors.deepPurple, ) : Container(),
-          ],
-        ),
-      );
+      bluetoothControl.isScanning ? LoadingAnimationWidget.prograssiveDots(
+        size: 20, color: Colors.deepPurple,) : Container();
+  }
+  StreamSubscription<dynamic>? _currentDeviceStateSubscription;
+
+  void startMonitoringConnection() {
+    const Duration checkInterval = Duration(seconds: 1);
+    _currentDeviceStateSubscription =
+        Stream.periodic(checkInterval).listen((_) async {
+          if (_bluetoothControl.recentBluetoothDevice != null) {
+            print("recentBluetoothDevice : ${_bluetoothControl.recentBluetoothDevice}");
+            Stream<BluetoothDeviceState> deviceStateStream = _bluetoothControl.recentBluetoothDevice!.state;
+            deviceStateStream.listen((state) {
+              if (state == BluetoothDeviceState.disconnected) {
+                print('Device disconnected: ${_bluetoothControl.recentBluetoothDevice!.name}');
+                // 연결이 끊어졌을 때 수행할 작업을 여기에 추가하세요.
+                _bluetoothControl.startScan();
+              }
+            });
+          }
+        });
+  }
+
+  void stopMonitoringConnection() {
+    _currentDeviceStateSubscription?.cancel();
+    _currentDeviceStateSubscription = null;
   }
 }
+

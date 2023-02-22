@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:bluetoothtranslate/simple_ask_dialog.dart';
+import 'package:bluetoothtranslate/simple_ask_dialog2.dart';
 import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
 import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:flutter/material.dart';
@@ -18,40 +19,58 @@ class BluetoothControl extends ChangeNotifier
 
   StreamSubscription<List<ScanResult>>?  _scanSubscription;
   List<ScanResult> recentScanResult = [];
+  List<BluetoothDevice> _recentBluetoothDevices = [];
+  BluetoothDevice? get recentBluetoothDevice
+  {
+    return _recentBluetoothDevices.isNotEmpty ? _recentBluetoothDevices[0] : null;
+  }
   void initializeBluetoothControl() {
-    // startMonitoringConnection();
   }
 
   void onDisposeBluetoothControl()
   {
-  //   stopMonitoringConnection();
   }
-
-  Future<BluetoothDevice?> getConnectedDevice() async {
-    List<BluetoothDevice> devices = await flutterBlue.connectedDevices;
-    //todo 나중에 내 기기의 characteristic uuid와 일치하는것을 되도록 뽑아서 반환하자.
-    if(devices.isNotEmpty) {
-      return devices[0];
-    } else {
-      return null;
+  Future<bool> isBluetoothTurnOn() async
+  {
+    BluetoothState bluetoothState = await flutterBlue.state.first;
+    return bluetoothState == BluetoothState.on;
+  }
+  Future<bool> bluetoothTurnOnDialog(BuildContext context) async
+  {
+    bool? bluetoothResponse = await simpleAskDialog2(context, "Bluetooth 기능이 필요합니다.", "허용", "거부");
+    if(bluetoothResponse != null && bluetoothResponse)
+    {
+      simpleLoadingDialog(context, "블루투스를 켜는중");
+      await flutterBlue.turnOn();
+      await Future.delayed(Duration(seconds: 3)); // 2초 동안 기다립니다.
+      Navigator.of(context).pop();
+      return true;
+    }
+    else{
+      return false;
     }
   }
   void startScan() async {
     await stopScan();
+    print("스캔을 시작합니다");
+
 
     if (!isScanning) {
       isScanning = true;
-      flutterBlue.startScan();
+      _recentBluetoothDevices = await flutterBlue.connectedDevices;
+      notifyListeners();
+
+
+      flutterBlue.startScan(timeout: Duration(seconds: 3)).then((value) {
+
+        stopScan();
+
+      });
       _scanSubscription = flutterBlue.scanResults.listen((results) {
         // Create a set of currently discovered devices
-        final discoveredDevices = Set<ScanResult>();
-        discoveredDevices.addAll(results);
-
-        // Remove disconnected devices from the recent scan result list
-        recentScanResult.removeWhere((result) => !discoveredDevices.contains(result));
-
         // Add the new results to the list
-        recentScanResult.addAll(discoveredDevices);
+        recentScanResult.clear();
+        recentScanResult.addAll(results);
 
         // Sort the list
         recentScanResult.sort((a, b) {
@@ -69,15 +88,18 @@ class BluetoothControl extends ChangeNotifier
     } else {
       print("ALREADY SCANNING");
     }
+    notifyListeners();
   }
   stopScan() async{
     if (isScanning) {
+      print("스캔을 멈춥니다");
       isScanning = false;
       flutterBlue.stopScan();
       _scanSubscription?.cancel();
+      notifyListeners();
     }
     else{
-      print("ALREADY SCAN IS STOPPED");
+      print("스캔이 이미 멈춰있으므로 생략");
     }
   }
   Future<BluetoothService>? findService(BluetoothDevice device, String serviceUUID) async {
@@ -165,58 +187,97 @@ class BluetoothControl extends ChangeNotifier
     bool success = false;
     device.state.listen((state) async {
       if (state == BluetoothDeviceState.connected) {
-        BluetoothCharacteristic bluetoothCharacteristic = await findCharacteristicByDevice(device, "4fafc201-1fb5-459e-8fcc-c5c9c331914b", "beb5483e-36e1-4688-b7f5-ea07361b26a8");
-        await writeCharacteristic(bluetoothCharacteristic, msg);
-        print("devlog 메세지 전송 성공");
-        success = true;
-      } else if (state == BluetoothDeviceState.disconnected) {
+        try{
+          BluetoothCharacteristic bluetoothCharacteristic = await findCharacteristicByDevice(device, "4fafc201-1fb5-459e-8fcc-c5c9c331914b", "beb5483e-36e1-4688-b7f5-ea07361b26a8");
+          await writeCharacteristic(bluetoothCharacteristic, msg);
+          print("devlog 메세지 전송 성공");
+          success = true;
+        }
+        catch(e)
+        {
+          print("devlog 메세지 전송 실패 $e");
+          success = false;
+        }
+      }
+      else if (state == BluetoothDeviceState.disconnected) {
         print("devlog 메세지 전송 실패");
         success = false;
       }
     });
     return success;
   }
-  //
-  // void startMonitoringConnection() {
-  //   const Duration checkInterval = Duration(seconds: 1);
-  //
-  //   _currentDeviceStateSubscription = Stream.periodic(checkInterval).listen((_) async {
-  //     if(_selectedDeviceForm != null)
-  //     {
-  //       print("startMonitoringConnection... not null");
-  //       final currentState = await _selectedDeviceForm!.device.state.first;
-  //       if (currentState == BluetoothDeviceState.disconnected) {
-  //         print("remote disconnected");
-  //         _nominatedDeviceForm = _selectedDeviceForm;
-  //         _selectedDeviceForm!.setDeviceStatus(DeviceStatus.disconnectedDevice);
-  //         _selectedDeviceForm = null;
-  //         notifyListeners();
-  //       }
-  //       else{
-  //     //   print("successfully connected");
-  //       }
-  //     }
-  //     else{
-  //       if(_nominatedDeviceForm != null && selectedDeviceForm == null)
-  //       {
-  //         try {
-  //           print("startMonitoringConnection... trying nominated device form trying");
-  //        //   await connectDevice(_nominatedDeviceForm!, 5);
-  //         }
-  //         catch(e)
-  //         {
-  //           print("startMonitoringConnection... trying nominated device form fail");
-  //         }
-  //       }
-  //       else{
-  //         print("startMonitoringConnection... null");
-  //       }
-  //     }
-  //   });
-  // }
-  // void stopMonitoringConnection() {
-  //   _currentDeviceStateSubscription?.cancel();
-  // }
 
+  Future<bool> checkIfRecentDeviceReadyToSend() async
+  {
+    if(recentBluetoothDevice == null)
+    {
+      return false;
+    }
+    BluetoothDeviceState bluetoothDeviceState = await recentBluetoothDevice!.state.first;
+    bool isReadyToSend = bluetoothDeviceState == BluetoothDeviceState.connected;
+    return isReadyToSend;
+  }
+  Stream<BluetoothDeviceState>? deviceStateStream;
+  var _currentDeviceStateSubscription;
+  //
+  void startMonitoringConnection() {
+    const Duration checkInterval = Duration(seconds: 1);
+      _currentDeviceStateSubscription = Stream.periodic(checkInterval).listen((_) async {
+      print("recentBluetoothDevice가 null이 아닌가? :  ${recentBluetoothDevice != null}");
+      if(recentBluetoothDevice != null)
+      {
+        BluetoothDeviceState state = await recentBluetoothDevice!.state.first;
+        print("recentBluetoothDevice의.state:  $state");
+
+        // 연결 상태 변경 이벤트를 모니터링합니다.
+        Stream<BluetoothDeviceState> deviceStateStream = recentBluetoothDevice!.state;
+        deviceStateStream.listen((state) {
+          if (state == BluetoothDeviceState.disconnected) {
+            print('Device disconnected: ${recentBluetoothDevice!.name}');
+            // 연결이 끊어졌을 때 수행할 작업을 여기에 추가하세요.
+            startScan();
+          }
+        });
+      }
+      bool readyToSend = await checkIfRecentDeviceReadyToSend();
+      print("recentBluetoothDevice 로인한 readyToSend는 ? :  $readyToSend");
+    });
+
+
+    //
+    // _currentDeviceStateSubscription = Stream.periodic(checkInterval).listen((_) async {
+    //   if(_selectedDeviceForm != null)
+    //   {
+    //     print("startMonitoringConnection... not null");
+    //     final currentState = await _selectedDeviceForm!.device.state.first;
+    //     if (currentState == BluetoothDeviceState.disconnected) {
+    //       print("remote disconnected");
+    //       _nominatedDeviceForm = _selectedDeviceForm;
+    //       _selectedDeviceForm!.setDeviceStatus(DeviceStatus.disconnectedDevice);
+    //       _selectedDeviceForm = null;
+    //       notifyListeners();
+    //     }
+    //     else{
+    //   //   print("successfully connected");
+    //     }
+    //   }
+    //   else{
+    //     if(_nominatedDeviceForm != null && selectedDeviceForm == null)
+    //     {
+    //       try {
+    //         print("startMonitoringConnection... trying nominated device form trying");
+    //      //   await connectDevice(_nominatedDeviceForm!, 5);
+    //       }
+    //       catch(e)
+    //       {
+    //         print("startMonitoringConnection... trying nominated device form fail");
+    //       }
+    //     }
+    //     else{
+    //       print("startMonitoringConnection... null");
+    //     }
+    //   }
+    // });
+  }
 
 }
