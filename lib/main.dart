@@ -1,4 +1,5 @@
 
+import 'package:bluetoothtranslate/test_speech.dart';
 import 'package:flutter/material.dart';
 import 'main_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
       // theme: ThemeData(
       //   fontFamily: 'NotoSans-Regular',
       // ),
-      home: MainScreen(prefs: prefs),
+      home: MainScreen(prefs: prefs,),
     );
   }
 }
