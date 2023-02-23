@@ -11,6 +11,8 @@ import 'package:bluetoothtranslate/simple_loading_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
+import 'language_datas.dart';
+
 class BluetoothControl extends ChangeNotifier
 {
   StreamSubscription? _timerSubscription;
@@ -267,4 +269,20 @@ class BluetoothControl extends ChangeNotifier
     return isReadyToSend;
   }
 
+  sendMessageToSelectedDevice(String fullMsgToSend) async{
+    try {
+      BluetoothDevice? connectedDevice = recentBluetoothDevice;
+      if(connectedDevice != null) {
+        await sendMessage(connectedDevice, fullMsgToSend);
+      }
+    } catch (e) {
+      throw Exception("메세지 전송 실패 이유 : $e");
+    }
+  }
+  String getFullMsg(LanguageItem targetLanguageItemToUse, String translatedMsg)
+  {
+    int arduinoUniqueId = targetLanguageItemToUse.langCodeArduino!;
+    String fullMsgToSend = '$arduinoUniqueId:$translatedMsg;';
+    return fullMsgToSend;
+  }
 }

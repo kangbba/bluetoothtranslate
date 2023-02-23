@@ -9,20 +9,13 @@ class SpeechToTextControl extends ChangeNotifier{
 
   final SpeechToText _speechToText = SpeechToText();
   String _recentRecognizedWords = '';
-  bool _isListening = false;
-  String _currentLocaleId = '';
-
-  initSpeechToText(LanguageItem languageItem)
-  {
-    _speechToText.initialize();
-    _currentLocaleId = (languageItem.speechLocaleId!);
+  bool _isFinalResultReturned = false;
+  bool get isFinalResultReturned{
+    return _isFinalResultReturned;
   }
-
-  SpeechToText get speechToText => _speechToText;
-
-  bool get isListening => _isListening;
-  set isListening(bool value) {
-    _isListening = value;
+  set isFinalResultReturned (bool value)
+  {
+    _isFinalResultReturned = value;
     notifyListeners();
   }
 
@@ -31,10 +24,41 @@ class SpeechToTextControl extends ChangeNotifier{
     _recentRecognizedWords = value;
     notifyListeners();
   }
+  initSpeechToText()
+  {
+    _speechToText.initialize();
+  }
 
-  String get currentLocaleId => _currentLocaleId;
-  set currentLocaleId(String value) {
-    _currentLocaleId = value;
+  SpeechToText get speechToText => _speechToText;
+
+
+  startListening(String currentLocaleID) async{
+    _isFinalResultReturned = false;
+    notifyListeners();
+    await speechToText.listen(
+      localeId: currentLocaleID,
+      listenMode: ListenMode.dictation,
+      onResult: (result) async {
+        String? recognizedWords = result.recognizedWords;
+        print("SpeechToText 듣는중 : $result");
+        _recentRecognizedWords = recognizedWords;
+        notifyListeners();
+        if(result.finalResult)
+        {
+          print("끝났어");
+          _isFinalResultReturned = true;
+          notifyListeners();
+          stopListening();
+        }
+      },
+    ).onError((error, stackTrace) {
+      print("error $error");
+    });
+  }
+  stopListening() async{
+    print("endListening");
+    speechToText.stop();
     notifyListeners();
   }
+
 }

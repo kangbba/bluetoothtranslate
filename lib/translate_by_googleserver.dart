@@ -19,4 +19,9 @@ class TranslateByGoogleServer
     TranslationModel translationModel = await _translation.translate(text: inputStr, to: to);
     return translationModel;
   }
+
+  textTranslate(String inputStr, String from, String to) async {
+    TranslationModel translationModel = await getTranslationModel(inputStr, from, to);
+    return translationModel.translatedText;
+  }
 }
