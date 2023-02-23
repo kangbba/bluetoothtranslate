@@ -125,17 +125,19 @@ class _MainScreenState extends State<MainScreen> {
       ],
       child: Scaffold(
         appBar: AppBar(
-          title: SafeArea(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("banGawer", style: TextStyle(color: Colors.white, fontSize: 23),),
-                bluetoothDeviceSelectBtn(context),
-              ],
-            ),
+          leadingWidth: 0,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Text(
+                "banGawer",
+                style: TextStyle(fontSize: 22),
+              ),
+            ],
           ),
-          toolbarHeight: 70,
+          actions: [bluetoothDeviceSelectBtn(context)],
           backgroundColor: Colors.indigo[900],
+
         ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -555,43 +557,43 @@ class _MainScreenState extends State<MainScreen> {
 
   //TODO : 블루투스 관련 기능
   Widget bluetoothDeviceSelectBtn(BuildContext context) {
-    return InkWell(
-      child: currentDeviceStateRamp(),
-      onTap: () async {
-        await onClickedOpenDeviceSelectScreen();
-      },
-    );
-  }
-  Widget currentDeviceStateRamp() {
-    return Consumer<BluetoothControl>(
-      builder: (context, bluetoothControl, _) {
-          return FutureBuilder<bool>(
-            future: bluetoothControl.checkIfRecentDeviceReadyToSend(),
-            builder: (context, snapshot) {
-              Color rampColor;
-              String ment = "";
-              if(snapshot.hasData)
-              {
-                bool readyToSend = snapshot.data!;
-                rampColor = readyToSend ? Colors.lightGreenAccent : Colors.red;
-                //recentBluetoothDevice! 가 null이면 보나마나 checkIfReadyToSendDevice 이 false를 뱉게 해두었기 떄문.
-                ment = readyToSend ? bluetoothControl.recentBluetoothDevice!.name : "Disconnected";
-              }
-              else{
-                ment = "Disconnected";
-                rampColor = Colors.orange;
-              }
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Icon(Icons.circle, color: rampColor, size: 15,),
-                  SizedBox(width: 5,),
-                  Text(ment, style: TextStyle(fontSize: 13, color: Colors.white)),
-                ],
-              );
-            }
-          );
-      },
+    return SizedBox(
+      child: InkWell(
+        child: Consumer<BluetoothControl>(
+          builder: (context, bluetoothControl, _) {
+            return FutureBuilder<bool>(
+                future: bluetoothControl.checkIfRecentDeviceReadyToSend(),
+                builder: (context, snapshot) {
+                  Color rampColor;
+                  String ment = "";
+                  if(snapshot.hasData && bluetoothControl.recentBluetoothDevice != null)
+                  {
+                    bool readyToSend = snapshot.data!;
+                    rampColor = readyToSend ? Colors.lightGreenAccent : Colors.red;
+                    //recentBluetoothDevice! 가 null이면 보나마나 checkIfReadyToSendDevice 이 false를 뱉게 해두었기 떄문.
+                    ment = readyToSend ? bluetoothControl.recentBluetoothDevice!.name : "Disconnected";
+                  }
+                  else{
+                    ment = "Disconnected";
+                    rampColor = Colors.orange;
+                  }
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Icon(Icons.circle, color: rampColor, size: 15,),
+                      SizedBox(width: 5,),
+                      Text(ment, style: TextStyle(fontSize: 14, color: Colors.white)),
+                      SizedBox(width: 12,),
+                    ],
+                  );
+                }
+            );
+          },
+        ),
+        onTap: () async {
+          await onClickedOpenDeviceSelectScreen();
+        },
+      ),
     );
   }
 
@@ -657,29 +659,16 @@ class _MainScreenState extends State<MainScreen> {
 
 // Request to turn on Bluetooth within an app
 
-    bool bluetoothTurnOn;
-    if ((await _bluetoothControl.flutterBlue.state.first) != BluetoothState.on)
-    {
-      bool? bluetoothResponse = await simpleAskDialog2(context, "Bluetooth 기능이 필요합니다.", "허용", "거부");
-      if(bluetoothResponse != null && bluetoothResponse)
-      {
-        bluetoothTurnOn = true;
-        simpleLoadingDialog(context, ("블루투스를 켜는중"));
-        await _bluetoothControl.flutterBlue.turnOn();
-        Navigator.of(context).pop();
-      }
-      else{
-        bluetoothTurnOn = false;
-      }
-    }
-    else{
-      bluetoothTurnOn = true;
-    }
+    bool bluetoothTurnOn = await _bluetoothControl.isBluetoothTurnOn();
     if(!bluetoothTurnOn)
     {
-      print("bluetooth 허용되지않음");
-      return;
+      bool response = await _bluetoothControl.bluetoothTurnOnDialog(context);
+      if(!response)
+      {
+        return;
+      }
     }
+
 
     _bluetoothControl.startScan();
     showModalBottomSheet(
