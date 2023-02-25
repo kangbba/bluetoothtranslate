@@ -6,13 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  runApp(MyApp(prefs : prefs));
+  runApp(MyApp());
 }
 class MyApp extends StatelessWidget {
-  final SharedPreferences prefs;
 
-  MyApp({required this.prefs});
+  MyApp();
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +18,7 @@ class MyApp extends StatelessWidget {
       // theme: ThemeData(
       //   fontFamily: 'NotoSans-Regular',
       // ),
-      home: MainScreen(prefs: prefs,),
+      home: MainScreen(),
     );
   }
 }

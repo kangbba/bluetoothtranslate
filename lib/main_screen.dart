@@ -19,8 +19,7 @@ import 'language_datas.dart';
 
 class MainScreen extends StatefulWidget {
 
-  final SharedPreferences prefs;
-  MainScreen({required this.prefs});
+  MainScreen({super.key});
 
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -262,7 +261,10 @@ class _MainScreenState extends State<MainScreen> {
     }
     if(!_isAudioRecordBtnPressed)
     {
-      print("${isMyRecordBtn? "내쪽" : "상대쪽"} 마이크 켬");
+      if(_nowActingStatus != ActingStatus.none){
+        print("이미 무언가 하고있습니다.");
+        return;
+      }
       bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
       if (!hasPermission) {
         PermissionController.showNoPermissionSnackBar(context);
@@ -274,6 +276,7 @@ class _MainScreenState extends State<MainScreen> {
         //todo 인터넷연결안됨 처리.
         return;
       }
+      print("${isMyRecordBtn? "내쪽" : "상대쪽"} 마이크 켬");
       _isAudioRecordBtnPressed = true;
       LanguageItem fromLanguageItem = isMyRecordBtn ? nowMyLanguageItem : nowYourLanguageItem;
       LanguageItem toLanguageItem =  isMyRecordBtn ? nowYourLanguageItem : nowMyLanguageItem;
@@ -289,6 +292,7 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {});
   }
   stopActingRoutine() async{
+    print("-----------------------루틴끝 stopActingRoutine------------------------");
     _nowActingStatus = ActingStatus.none;
     _nowActingOwner = ActingOwner.neutral;
   }
@@ -324,11 +328,13 @@ class _MainScreenState extends State<MainScreen> {
   {
       //1. setting
     stopActingRoutine();
+    print("-----------------------루틴시작 startActingRoutine------------------------");
     _nowActingOwner = isMyRecordBtn ? ActingOwner.me : ActingOwner.you;
     myTextEdit.text = '';
     yourTextEdit.text = '';
 
     //2. speech to original text
+    print("-----------------------음성녹음 ActingStatus.recording------------------------");
     _nowActingStatus = ActingStatus.recording;
     String fromWords = await listeningRoutine(fromLanguageItem.speechLocaleId!, isMyRecordBtn);
     // String fromWords = await listeningRoutine_speechToText(fromLanguageItem.speechLocaleId!, isMyRecordBtn);
@@ -338,6 +344,7 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
     //3. original text to translated text
+    print("-----------------------번역 ActingStatus.translating------------------------");
     _nowActingStatus = ActingStatus.translating;
     String toWords = await _translateControl.translateByAvailableTranslateTools(fromWords, fromLanguageItem, toLanguageItem);
     if(toWords.isEmpty) {
@@ -348,6 +355,7 @@ class _MainScreenState extends State<MainScreen> {
     TextEditingController properControllerToTranslatedWords = isMyRecordBtn ? yourTextEdit : myTextEdit;
     properControllerToTranslatedWords.text = toWords;
 
+    print("-----------------------디바이스전송 ActingStatus.deviceSending------------------------");
     //5. send to device
     _nowActingStatus = ActingStatus.deviceSending;
     //speech service

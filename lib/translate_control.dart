@@ -62,7 +62,6 @@ class TranslateControl with ChangeNotifier
 
   Future<String> translateByAvailableTranslateTools (String recognizedWords, LanguageItem fromLanguageItem, LanguageItem toLanguageItem) async{
 
-    print("-----------------------번역시도------------------------");
     bool isContainChina = (fromLanguageItem.translateLanguage == TranslateLanguage.chinese) || (toLanguageItem.translateLanguage == TranslateLanguage.chinese);
 
     List<TranslateTool> trToolsOrderStandard = [TranslateTool.googleServer, TranslateTool.papagoServer];
@@ -82,7 +81,6 @@ class TranslateControl with ChangeNotifier
         break;
       }
     }
-    print("-----------------------번역 끝------------------------");
     if(trToolConfirmed != null && translatedWords != null)
     {
       return translatedWords;
