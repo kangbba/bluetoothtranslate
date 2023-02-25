@@ -6,7 +6,7 @@ simpleLoadingDialog(BuildContext context, String message) async {
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
-        insetPadding: EdgeInsets.symmetric(horizontal: 100 , vertical: 100),
+        insetPadding: EdgeInsets.symmetric(vertical: 100),
         contentTextStyle: TextStyle(fontSize: 14, color: Colors.black87),
         actionsAlignment: MainAxisAlignment.spaceEvenly,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

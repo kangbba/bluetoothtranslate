@@ -40,7 +40,6 @@ dependencies:
   connectivity_wrapper: ^1.1.1
   simple_ripple_animation: ^0.0.7
 
-  speech_to_text: ^6.1.1
   flutter_tts: ^3.6.3
 
   flutter:

@@ -80,12 +80,8 @@ class LanguageDatas {
   DropdownMenuItem<String> languageDropdownMenuItem(LanguageItem languageItem) {
     return DropdownMenuItem(
       value: languageItem.menuDisplayStr,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(languageItem.menuDisplayStr!, textAlign: TextAlign.center,),
-        ],
-      ),
+      alignment: Alignment.center,
+      child: Text(languageItem.menuDisplayStr!),
     );
   }
   // TODO: LanguageItem 관리
