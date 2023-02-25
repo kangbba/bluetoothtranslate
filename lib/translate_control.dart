@@ -3,10 +3,8 @@ import 'package:bluetoothtranslate/apis/translate_by_googledevice.dart';
 import 'package:bluetoothtranslate/apis/translate_by_googleserver.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
-import 'package:provider/provider.dart';
-
-import 'language_datas.dart';
-import 'helper/simple_ask_dialog.dart';
+import 'language_select_control.dart';
+import 'language_select_screen.dart';
 
 enum TranslateTool
 {

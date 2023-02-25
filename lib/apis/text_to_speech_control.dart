@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
-import '../language_datas.dart';
 
 class TextToSpeechControl extends ChangeNotifier{
 

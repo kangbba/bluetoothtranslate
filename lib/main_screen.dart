@@ -1,6 +1,8 @@
 
 import 'dart:async';
 import 'package:bluetoothtranslate/bluetooth_control.dart';
+import 'package:bluetoothtranslate/language_select_control.dart';
+import 'package:bluetoothtranslate/language_select_screen.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
 import 'package:bluetoothtranslate/helper/simple_confirm_dialog.dart';
 import 'package:bluetoothtranslate/helper/simple_separator.dart';
@@ -15,7 +17,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_ripple_animation/simple_ripple_animation.dart';
 import 'device_select_screen.dart';
-import 'language_datas.dart';
 
 class MainScreen extends StatefulWidget {
 
@@ -45,8 +46,8 @@ class _MainScreenState extends State<MainScreen> {
   ActingStatus _nowActingStatus = ActingStatus.none;
   ActingOwner _nowActingOwner = ActingOwner.neutral;
 
+  final LanguageSelectControl _languageSelectControl = LanguageSelectControl();
   final SpeechRecognitionControl _speechRecognitionControl = SpeechRecognitionControl();
-  final LanguageDatas _languageDatas = LanguageDatas();
   final BluetoothControl _bluetoothControl = BluetoothControl();
   final TextToSpeechControl _textToSpeechControl = TextToSpeechControl();
   final TranslateControl _translateControl = TranslateControl();
@@ -59,14 +60,11 @@ class _MainScreenState extends State<MainScreen> {
   Color myMainColor = Colors.cyan[800]!;
 
 
-  late LanguageItem nowMyLanguageItem = _languageDatas.languageItems[11];
-  late LanguageItem nowYourLanguageItem = _languageDatas.languageItems[0];
 
   @override
   void initState() {
     super.initState();
-
-    _languageDatas.initializeLanguageDatas();
+    _languageSelectControl.initializeLanguageSelectControl();
     _bluetoothControl.initializeBluetoothControl();
     _speechRecognitionControl.activateSpeechRecognizer();
     _textToSpeechControl.initTextToSpeech();
@@ -91,6 +89,9 @@ class _MainScreenState extends State<MainScreen> {
         ListenableProvider<SpeechRecognitionControl>(
           create: (_) => _speechRecognitionControl,
         ),
+        ListenableProvider<LanguageSelectControl>(
+          create: (_) => _languageSelectControl,
+        ),
         ListenableProvider<BluetoothControl>(
           create: (_) => _bluetoothControl,
         ),
@@ -113,15 +114,28 @@ class _MainScreenState extends State<MainScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    SizedBox(height: 130, child: _audioRecordBtn(context, false)),
+                    SizedBox(height: 130, child: _audioRecordBtn(context, false, _languageSelectControl)),
                     SizedBox(height: 95, child: Align(alignment : Alignment.topCenter, child: _dropdownMenuSwitchBtn())),
-                    SizedBox(height: 130, child: _audioRecordBtn(context, true)),
+                    SizedBox(height: 130, child: _audioRecordBtn(context, true, _languageSelectControl)),
                   ],
                 )),
           ],
         ),
         bottomNavigationBar: Container(height : 40 ),
 
+      ),
+    );
+  }
+
+  Widget _dropdownMenuSwitchBtn() {
+    return SizedBox(
+      width: 30,
+      height: 30,
+      child: InkWell(
+          onTap: (){
+            onClickedDropdownMenuSwitchBtn();
+          },
+          child: Image.asset('assets/exchange.png')
       ),
     );
   }
@@ -144,30 +158,6 @@ class _MainScreenState extends State<MainScreen> {
       toolbarHeight: 40,
 
       );
-  }
-
-
-  Widget _dropdownMenuSwitchBtn() {
-    return SizedBox(
-      width: 30,
-      height: 30,
-      child: InkWell(
-        onTap: (){
-          _onClickedDropdownMenuSwitchBtn();
-        },
-        child: Image.asset('assets/exchange.png')
-      ),
-    );
-  }
-
-  _onClickedDropdownMenuSwitchBtn()
-  {
-    var tmp = nowMyLanguageItem;
-    nowMyLanguageItem = nowYourLanguageItem;
-    nowYourLanguageItem = tmp;
-    setState(() {
-
-    });
   }
   Widget translateAreaField(bool isMine) {
     Widget loadingWidget;
@@ -214,13 +204,13 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-  Widget _audioRecordBtn(BuildContext context, bool isMyRecordBtn) {
+  Widget _audioRecordBtn(BuildContext context, bool isMyRecordBtn, LanguageSelectControl languageSelectControl) {
     bool isRecordingAndMatchWithTurn = (isMyRecordBtn && _nowActingOwner == ActingOwner.me && _nowActingStatus == ActingStatus.recording)
         || (!isMyRecordBtn && _nowActingOwner == ActingOwner.you &&  _nowActingStatus == ActingStatus.recording);
       return Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          isMyRecordBtn ? _dropdownMenu(true) : _dropdownMenu(false),
+          isMyRecordBtn ? languageSelectScreenBtn(true) : languageSelectScreenBtn(false),
           Stack(
             children: [
               RippleAnimation(
@@ -238,7 +228,7 @@ class _MainScreenState extends State<MainScreen> {
                     backgroundColor: MaterialStateProperty.all(isMyRecordBtn ? Colors.cyan[800] :  Colors.blueGrey[500]),
                   ),
                   onPressed: (){
-                    onPressedAudioRecordBtn(isMyRecordBtn);
+                    onPressedAudioRecordBtn(isMyRecordBtn, languageSelectControl);
                   },
                   child: isRecordingAndMatchWithTurn ? LoadingAnimationWidget.staggeredDotsWave(size: 33, color: Colors.white) :
                   Icon(Icons.mic, color:  Colors.white, size: 33,),
@@ -252,7 +242,7 @@ class _MainScreenState extends State<MainScreen> {
 
 
   // isRecording ? LoadingAnimationWidget.beat(size: 50, color: Colors.grey) : Container(width: 36, height: 36,),
-  onPressedAudioRecordBtn(bool isMyRecordBtn) async {
+  onPressedAudioRecordBtn(bool isMyRecordBtn, LanguageSelectControl languageSelectControl) async {
     _isMicNotTouched = false;
     if(_nowActingOwner != ActingOwner.neutral && _nowActingOwner != (isMyRecordBtn ? ActingOwner.me : ActingOwner.you))
     {
@@ -278,16 +268,16 @@ class _MainScreenState extends State<MainScreen> {
       }
       print("${isMyRecordBtn? "내쪽" : "상대쪽"} 마이크 켬");
       _isAudioRecordBtnPressed = true;
-      LanguageItem fromLanguageItem = isMyRecordBtn ? nowMyLanguageItem : nowYourLanguageItem;
-      LanguageItem toLanguageItem =  isMyRecordBtn ? nowYourLanguageItem : nowMyLanguageItem;
-      startActingRoutine(isMyRecordBtn, fromLanguageItem, toLanguageItem);
+      LanguageItem fromLanguageItem = isMyRecordBtn ? languageSelectControl.nowMyLanguageItem : languageSelectControl.nowYourLanguageItem;
+      LanguageItem toLanguageItem =  isMyRecordBtn ? languageSelectControl.nowYourLanguageItem : languageSelectControl.nowMyLanguageItem;
+      startActingRoutine(isMyRecordBtn, fromLanguageItem, toLanguageItem, languageSelectControl);
     }
     else{
       print("${isMyRecordBtn? "내쪽" : "상대쪽"} 마이크 끔");
 
       _isAudioRecordBtnPressed = false;
-      LanguageItem fromLanguageItem = isMyRecordBtn ? nowMyLanguageItem : nowYourLanguageItem;
-      LanguageItem toLanguageItem =  isMyRecordBtn ? nowYourLanguageItem : nowMyLanguageItem;
+      LanguageItem fromLanguageItem = isMyRecordBtn ? languageSelectControl.nowMyLanguageItem : languageSelectControl.nowYourLanguageItem;
+      LanguageItem toLanguageItem =  isMyRecordBtn ? languageSelectControl.nowYourLanguageItem : languageSelectControl.nowMyLanguageItem;
     }
     setState(() {});
   }
@@ -296,35 +286,7 @@ class _MainScreenState extends State<MainScreen> {
     _nowActingStatus = ActingStatus.none;
     _nowActingOwner = ActingOwner.neutral;
   }
-  listeningRoutine(String speechLocaleID, bool isMyRecordBtn) async {
-    _speechRecognitionControl.transcription = '';
-    _speechRecognitionControl.start(speechLocaleID);
-    _speechRecognitionControl.isCompleted = false;
-    TextEditingController properControllerToTranslatedWords = isMyRecordBtn ? myTextEdit  : yourTextEdit;
-    while (true) {
-      // if(!_speechToTextControl.speechToText.isListening)
-      properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
-      await Future.delayed(Duration(milliseconds: 1));
-      if(_speechRecognitionControl.isCompleted)
-      {
-        await Future.delayed(Duration(milliseconds: 500));
-        properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
-        print("_speechRecognitionControl.isListening가 false이기 때문에 listening routine 탈출..");
-        print(_speechRecognitionControl.transcription);
-        onPressedAudioRecordBtn(isMyRecordBtn);
-        break;
-      }
-      if (!_isAudioRecordBtnPressed) {
-        print("마이크를 사용자가 껐기 때문에 listening routine 탈출..");
-        _speechRecognitionControl.stop();
-        break;
-      }
-
-    }
-    properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
-    return _speechRecognitionControl.transcription;
-  }
-  startActingRoutine(bool isMyRecordBtn, LanguageItem fromLanguageItem, LanguageItem toLanguageItem) async
+  startActingRoutine(bool isMyRecordBtn, LanguageItem fromLanguageItem, LanguageItem toLanguageItem, LanguageSelectControl languageSelectControl) async
   {
       //1. setting
     stopActingRoutine();
@@ -336,7 +298,7 @@ class _MainScreenState extends State<MainScreen> {
     //2. speech to original text
     print("-----------------------음성녹음 ActingStatus.recording------------------------");
     _nowActingStatus = ActingStatus.recording;
-    String fromWords = await listeningRoutine(fromLanguageItem.speechLocaleId!, isMyRecordBtn);
+    String fromWords = await listeningRoutine(fromLanguageItem.speechLocaleId!, isMyRecordBtn, languageSelectControl);
     // String fromWords = await listeningRoutine_speechToText(fromLanguageItem.speechLocaleId!, isMyRecordBtn);
     if(fromWords.isEmpty) {
       print("아무 말도 녹음되지 않았습니다");
@@ -379,55 +341,36 @@ class _MainScreenState extends State<MainScreen> {
     //6. finish
     stopActingRoutine();
   }
+  listeningRoutine(String speechLocaleID, bool isMyRecordBtn, languageSelectControl) async {
+    _speechRecognitionControl.transcription = '';
+    _speechRecognitionControl.start(speechLocaleID);
+    _speechRecognitionControl.isCompleted = false;
+    TextEditingController properControllerToTranslatedWords = isMyRecordBtn ? myTextEdit  : yourTextEdit;
+    while (true) {
+      // if(!_speechToTextControl.speechToText.isListening)
+      properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
+      await Future.delayed(Duration(milliseconds: 1));
+      if(_speechRecognitionControl.isCompleted)
+      {
+        await Future.delayed(Duration(milliseconds: 500));
+        properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
+        print("_speechRecognitionControl.isListening가 false이기 때문에 listening routine 탈출..");
+        print(_speechRecognitionControl.transcription);
+        onPressedAudioRecordBtn(isMyRecordBtn, languageSelectControl);
+        break;
+      }
+      if (!_isAudioRecordBtnPressed) {
+        print("마이크를 사용자가 껐기 때문에 listening routine 탈출..");
+        _speechRecognitionControl.stop();
+        break;
+      }
 
-
-  onSelectedMyLanguageItem(LanguageItem languageItem) {
-    nowMyLanguageItem = languageItem;
-    setState(() {
-    });
-  }
-  onSelectedYourLanguageItem(LanguageItem languageItem){
-    nowYourLanguageItem = languageItem;
-    setState(() {
-    });
-  }
-
-  Widget _dropdownMenu(bool isMyDropdownMenu) {
-    return SizedBox(
-      width: 125,
-      height: 45,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 12),
-        child: DropdownButton(
-          isExpanded: true,
-          underline: Container(),
-          alignment: Alignment.centerLeft,
-
-          items: _languageDatas.languageMenuItems,
-          value: isMyDropdownMenu ? nowMyLanguageItem.menuDisplayStr : nowYourLanguageItem.menuDisplayStr,
-          onChanged: (value) async{
-            LanguageItem languageItem = _languageDatas.findLanguageItemByMenuDisplayStr(value!);
-            if(isMyDropdownMenu){
-              nowMyLanguageItem = languageItem;
-            }
-            else{
-              nowYourLanguageItem = languageItem;
-            }
-            setState(() {
-            });
-          },
-        ),
-      ),
-    );
+    }
+    properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
+    return _speechRecognitionControl.transcription;
   }
 
-  ButtonStyle standardBtnStyle()
-  {
-    return ElevatedButton.styleFrom(
-        backgroundColor: Colors.indigo,
-        padding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(6.0)));
-  }
+
 
 
   //TODO : 블루투스 관련 기능
@@ -497,7 +440,63 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
   }
+  Widget languageSelectScreenBtn(bool isMine) {
+    return Consumer<LanguageSelectControl>(
+      builder: (context, languageSelectControl, child) {
+        return InkWell(
+          onTap: () {
+            late LanguageSelectScreen myLanguageSelectScreen =
+            LanguageSelectScreen(
+              isMine: true,
+              languageSelectControl: languageSelectControl,
+            );
+            late LanguageSelectScreen yourLanguageSelectScreen =
+            LanguageSelectScreen(
+              isMine: false,
+              languageSelectControl: languageSelectControl,
+            );
+            var selectedLanguageScreen =
+            isMine ? myLanguageSelectScreen : yourLanguageSelectScreen;
 
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                  ),
+                  child: Padding(
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: selectedLanguageScreen,
+                  ),
+                );
+              },
+            );
+          },
+          child: SizedBox(
+            width: 130,
+            height: 30,
+            child: Align(
+              alignment: Alignment.center,
+              child: Text(
+                "${isMine ? languageSelectControl.nowMyLanguageItem.menuDisplayStr : languageSelectControl.nowYourLanguageItem.menuDisplayStr}",
+                style: TextStyle(fontSize: 16, color: Colors.black87),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
+  onClickedDropdownMenuSwitchBtn()
+  {
+    // var tmp = _myLanguageSelectScreen ;
+    // _myLanguageSelectScreen = _yourLanguageSelectScreen;
+    // _yourLanguageSelectScreen = tmp;
+    //
+    // notifyListeners();
+  }
 
 }

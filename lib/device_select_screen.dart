@@ -208,7 +208,6 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
     }
     if (isDeviceDisconnected) {
       print("이 기기는 disconnceted이므로 연결시도해보겠음.");
-      simpleLoadingDialog(context, "로딩중");
       await tryConnectDevice(device);
     }
     else {
@@ -221,6 +220,7 @@ class _DeviceSelectScreenState extends State<DeviceSelectScreen> {
   {
     try {
       print("connect 2초간 시도");
+      simpleLoadingDialog(context, "로딩중");
       await device.connect(timeout: Duration(milliseconds: 3500));
       print("connect 2초의 시도완료");
       Navigator.of(context).pop();

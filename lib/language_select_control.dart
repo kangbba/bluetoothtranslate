@@ -1,7 +1,7 @@
-
-
-import 'package:flutter/material.dart';
+import 'package:bluetoothtranslate/language_select_screen.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
+
 
 
 class LanguageItem {
@@ -21,8 +21,55 @@ class LanguageItem {
     this.langCodeArduino,
   });
 }
-class LanguageDatas {
-  List<LanguageItem> languageItems = [
+class LanguageSelectControl with ChangeNotifier{
+
+  late TranslateLanguage initialMyTranslateLanguage = TranslateLanguage.korean;
+  late TranslateLanguage initialYourTranslateLanguage = TranslateLanguage.english;
+
+  late LanguageItem _nowMyLanguageItem = findLanguageItemByTranslateLanguage(initialMyTranslateLanguage);
+  LanguageItem get nowMyLanguageItem{
+    return _nowMyLanguageItem;
+  }
+  set nowMyLanguageItem(LanguageItem value){
+    _nowMyLanguageItem = value;
+    notifyListeners();
+  }
+  late LanguageItem _nowYourLanguageItem = findLanguageItemByTranslateLanguage(initialYourTranslateLanguage);
+  LanguageItem get nowYourLanguageItem{
+    return _nowYourLanguageItem;
+  }
+  set nowYourLanguageItem(LanguageItem value){
+    _nowYourLanguageItem = value;
+    notifyListeners();
+  }
+
+// TODO: LanguageItem 관리
+  LanguageItem findLanguageItemByTranslateLanguage(TranslateLanguage translateLanguage) {
+  return languageDataList.firstWhere((item) => item.translateLanguage == translateLanguage, orElse: () => LanguageItem());
+  }
+  LanguageItem findLanguageItemByMenuDisplayStr(String menuDisplayStr) {
+  return languageDataList.firstWhere((item) => item.menuDisplayStr == menuDisplayStr, orElse: () => LanguageItem());
+  }
+  initializeLanguageSelectControl(){
+
+    late LanguageItem initialMyLanguageItem = findLanguageItemByTranslateLanguage(initialMyTranslateLanguage);
+    late LanguageItem initialYourLanguageItem = findLanguageItemByTranslateLanguage(initialYourTranslateLanguage);
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+  List<LanguageItem> languageDataList = [
     LanguageItem(translateLanguage: TranslateLanguage.english, menuDisplayStr: "English", speechLocaleId: "en_US", langCodeGoogleServer: "en", langCodePapagoServer: "en", langCodeArduino: 1),
     LanguageItem(translateLanguage: TranslateLanguage.spanish, menuDisplayStr: "Spanish", speechLocaleId: "es_ES", langCodeGoogleServer: "es", langCodePapagoServer: "es", langCodeArduino: 2),
     LanguageItem(translateLanguage: TranslateLanguage.french, menuDisplayStr: "French", speechLocaleId: "fr_FR", langCodeGoogleServer: "fr", langCodePapagoServer: "fr", langCodeArduino: 3),
@@ -66,29 +113,4 @@ class LanguageDatas {
 
   ];
 
-
-  List<DropdownMenuItem> languageMenuItems = [];
-
-  // TODO: 기본함수
-  void initializeLanguageDatas() {
-    for (var languageItem in languageItems) {
-      languageMenuItems.add(languageDropdownMenuItem(languageItem!));
-    }
-  }
-
-    // TODO: 드랍다운 메뉴 아이템들 관리
-  DropdownMenuItem<String> languageDropdownMenuItem(LanguageItem languageItem) {
-    return DropdownMenuItem(
-      value: languageItem.menuDisplayStr,
-      alignment: Alignment.center,
-      child: Text(languageItem.menuDisplayStr!),
-    );
-  }
-  // TODO: LanguageItem 관리
-  LanguageItem findLanguageItemByTranslateLanguage(TranslateLanguage translateLanguage) {
-    return languageItems.firstWhere((item) => item.translateLanguage == translateLanguage, orElse: () => LanguageItem());
-  }
-  LanguageItem findLanguageItemByMenuDisplayStr(String menuDisplayStr) {
-    return languageItems.firstWhere((item) => item.menuDisplayStr == menuDisplayStr, orElse: () => LanguageItem());
-  }
 }
