@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:provider/provider.dart';
 
-import 'bluetooth_control.dart';
+import '../bluetooth_control.dart';
 
 
 class TestScreen extends StatefulWidget {

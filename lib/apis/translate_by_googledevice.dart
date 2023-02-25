@@ -1,5 +1,5 @@
 
-import 'package:bluetoothtranslate/simple_loading_dialog.dart';
+import 'package:bluetoothtranslate/helper/simple_loading_dialog.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 
 

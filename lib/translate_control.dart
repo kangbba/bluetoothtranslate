@@ -1,12 +1,12 @@
-import 'package:bluetoothtranslate/translage_by_papagoserver.dart';
-import 'package:bluetoothtranslate/translate_by_googledevice.dart';
-import 'package:bluetoothtranslate/translate_by_googleserver.dart';
+import 'package:bluetoothtranslate/apis/translage_by_papagoserver.dart';
+import 'package:bluetoothtranslate/apis/translate_by_googledevice.dart';
+import 'package:bluetoothtranslate/apis/translate_by_googleserver.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:provider/provider.dart';
 
 import 'language_datas.dart';
-import 'simple_ask_dialog.dart';
+import 'helper/simple_ask_dialog.dart';
 
 enum TranslateTool
 {

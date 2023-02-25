@@ -4,10 +4,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:bluetoothtranslate/simple_ask_dialog.dart';
-import 'package:bluetoothtranslate/simple_ask_dialog2.dart';
-import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
-import 'package:bluetoothtranslate/simple_loading_dialog.dart';
+import 'package:bluetoothtranslate/helper/simple_ask_dialog.dart';
+import 'package:bluetoothtranslate/helper/simple_ask_dialog2.dart';
+import 'package:bluetoothtranslate/helper/simple_confirm_dialog.dart';
+import 'package:bluetoothtranslate/helper/simple_loading_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 

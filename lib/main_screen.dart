@@ -2,11 +2,11 @@
 import 'dart:async';
 import 'package:bluetoothtranslate/bluetooth_control.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
-import 'package:bluetoothtranslate/simple_confirm_dialog.dart';
-import 'package:bluetoothtranslate/simple_separator.dart';
-import 'package:bluetoothtranslate/sizes.dart';
+import 'package:bluetoothtranslate/helper/simple_confirm_dialog.dart';
+import 'package:bluetoothtranslate/helper/simple_separator.dart';
+import 'package:bluetoothtranslate/statics/sizes.dart';
 import 'package:bluetoothtranslate/speech_recognition_control.dart';
-import 'package:bluetoothtranslate/text_to_speech_control.dart';
+import 'package:bluetoothtranslate/apis/text_to_speech_control.dart';
 import 'package:bluetoothtranslate/translate_control.dart';
 import 'package:connectivity_wrapper/connectivity_wrapper.dart';
 import 'package:flutter/material.dart';

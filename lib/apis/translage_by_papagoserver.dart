@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'apiKey.dart';
+import '../statics/apiKey.dart';
 import 'package:http/http.dart' as http;
 
 class TranslateByPapagoServer
