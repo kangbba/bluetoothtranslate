@@ -69,6 +69,8 @@ class _MainScreenState extends State<MainScreen> {
     _speechRecognitionControl.activateSpeechRecognizer();
     _textToSpeechControl.initTextToSpeech();
     _translateControl.initializeTranslateControl();
+
+    startAutoTurnOnYourMicBtnTimer(_languageSelectControl);
   }
   @override
   void dispose() {
@@ -114,9 +116,9 @@ class _MainScreenState extends State<MainScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    SizedBox(height: 130, child: _audioRecordBtn(context, false, _languageSelectControl)),
+                    SizedBox(height: 130, child: _audioRecordBtn(context, ActingOwner.you, _languageSelectControl)),
                     SizedBox(height: 95, child: Align(alignment : Alignment.topCenter, child: _dropdownMenuSwitchBtn())),
-                    SizedBox(height: 130, child: _audioRecordBtn(context, true, _languageSelectControl)),
+                    SizedBox(height: 130, child: _audioRecordBtn(context, ActingOwner.me, _languageSelectControl)),
                   ],
                 )),
           ],
@@ -204,13 +206,12 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-  Widget _audioRecordBtn(BuildContext context, bool isMyRecordBtn, LanguageSelectControl languageSelectControl) {
-    bool isRecordingAndMatchWithTurn = (isMyRecordBtn && _nowActingOwner == ActingOwner.me && _nowActingStatus == ActingStatus.recording)
-        || (!isMyRecordBtn && _nowActingOwner == ActingOwner.you &&  _nowActingStatus == ActingStatus.recording);
+  Widget _audioRecordBtn(BuildContext context, ActingOwner recordBtnOwner, LanguageSelectControl languageSelectControl) {
+    bool isRecordingAndMatchWithTurn = recordBtnOwner == _nowActingOwner;
       return Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          isMyRecordBtn ? languageSelectScreenBtn(true) : languageSelectScreenBtn(false),
+          recordBtnOwner == ActingOwner.me ? languageSelectScreenBtn(true) : languageSelectScreenBtn(false),
           Stack(
             children: [
               RippleAnimation(
@@ -225,10 +226,10 @@ class _MainScreenState extends State<MainScreen> {
                   style: ButtonStyle(
                     minimumSize: MaterialStateProperty.all(Size(55, 55)),
                     shape: MaterialStateProperty.all(CircleBorder()),
-                    backgroundColor: MaterialStateProperty.all(isMyRecordBtn ? Colors.cyan[800] :  Colors.blueGrey[500]),
+                    backgroundColor: MaterialStateProperty.all(recordBtnOwner == ActingOwner.me ? Colors.cyan[800] :  Colors.blueGrey[500]),
                   ),
                   onPressed: (){
-                    onPressedAudioRecordBtn(isMyRecordBtn, languageSelectControl);
+                    onPressedAudioRecordBtn(recordBtnOwner, languageSelectControl);
                   },
                   child: isRecordingAndMatchWithTurn ? LoadingAnimationWidget.staggeredDotsWave(size: 33, color: Colors.white) :
                   Icon(Icons.mic, color:  Colors.white, size: 33,),
@@ -242,13 +243,14 @@ class _MainScreenState extends State<MainScreen> {
 
 
   // isRecording ? LoadingAnimationWidget.beat(size: 50, color: Colors.grey) : Container(width: 36, height: 36,),
-  onPressedAudioRecordBtn(bool isMyRecordBtn, LanguageSelectControl languageSelectControl) async {
+  onPressedAudioRecordBtn(ActingOwner recordBtnOwner, LanguageSelectControl languageSelectControl) async {
     _isMicNotTouched = false;
-    if(_nowActingOwner != ActingOwner.neutral && _nowActingOwner != (isMyRecordBtn ? ActingOwner.me : ActingOwner.you))
+    if(_nowActingOwner != ActingOwner.neutral &&  _nowActingOwner != recordBtnOwner)
     {
-      print("상대방이 다른행동을하고있습니다");
+      print("마이크의 주인이 아닌 사람이 무언가 하고있습니다");
       return;
     }
+    bool isRecordBtnOwnerIsMe = recordBtnOwner == ActingOwner.me;
     if(!_isAudioRecordBtnPressed)
     {
       if(_nowActingStatus != ActingStatus.none){
@@ -266,18 +268,18 @@ class _MainScreenState extends State<MainScreen> {
         //todo 인터넷연결안됨 처리.
         return;
       }
-      print("${isMyRecordBtn? "내쪽" : "상대쪽"} 마이크 켬");
+      print("${isRecordBtnOwnerIsMe? "내쪽" : "상대쪽"} 마이크 켬");
       _isAudioRecordBtnPressed = true;
-      LanguageItem fromLanguageItem = isMyRecordBtn ? languageSelectControl.nowMyLanguageItem : languageSelectControl.nowYourLanguageItem;
-      LanguageItem toLanguageItem =  isMyRecordBtn ? languageSelectControl.nowYourLanguageItem : languageSelectControl.nowMyLanguageItem;
-      startActingRoutine(isMyRecordBtn, fromLanguageItem, toLanguageItem, languageSelectControl);
+      LanguageItem fromLanguageItem = isRecordBtnOwnerIsMe ? languageSelectControl.nowMyLanguageItem : languageSelectControl.nowYourLanguageItem;
+      LanguageItem toLanguageItem =  isRecordBtnOwnerIsMe ? languageSelectControl.nowYourLanguageItem : languageSelectControl.nowMyLanguageItem;
+      startActingRoutine(recordBtnOwner, fromLanguageItem, toLanguageItem, languageSelectControl);
     }
     else{
-      print("${isMyRecordBtn? "내쪽" : "상대쪽"} 마이크 끔");
+      print("${isRecordBtnOwnerIsMe? "내쪽" : "상대쪽"} 마이크 끔");
 
       _isAudioRecordBtnPressed = false;
-      LanguageItem fromLanguageItem = isMyRecordBtn ? languageSelectControl.nowMyLanguageItem : languageSelectControl.nowYourLanguageItem;
-      LanguageItem toLanguageItem =  isMyRecordBtn ? languageSelectControl.nowYourLanguageItem : languageSelectControl.nowMyLanguageItem;
+      LanguageItem fromLanguageItem = isRecordBtnOwnerIsMe ? languageSelectControl.nowMyLanguageItem : languageSelectControl.nowYourLanguageItem;
+      LanguageItem toLanguageItem =  isRecordBtnOwnerIsMe ? languageSelectControl.nowYourLanguageItem : languageSelectControl.nowMyLanguageItem;
     }
     setState(() {});
   }
@@ -286,19 +288,19 @@ class _MainScreenState extends State<MainScreen> {
     _nowActingStatus = ActingStatus.none;
     _nowActingOwner = ActingOwner.neutral;
   }
-  startActingRoutine(bool isMyRecordBtn, LanguageItem fromLanguageItem, LanguageItem toLanguageItem, LanguageSelectControl languageSelectControl) async
+  startActingRoutine(ActingOwner recordBtnOwner, LanguageItem fromLanguageItem, LanguageItem toLanguageItem, LanguageSelectControl languageSelectControl) async
   {
       //1. setting
     stopActingRoutine();
     print("-----------------------루틴시작 startActingRoutine------------------------");
-    _nowActingOwner = isMyRecordBtn ? ActingOwner.me : ActingOwner.you;
+    _nowActingOwner = recordBtnOwner;
     myTextEdit.text = '';
     yourTextEdit.text = '';
 
     //2. speech to original text
     print("-----------------------음성녹음 ActingStatus.recording------------------------");
     _nowActingStatus = ActingStatus.recording;
-    String fromWords = await listeningRoutine(fromLanguageItem.speechLocaleId!, isMyRecordBtn, languageSelectControl);
+    String fromWords = await listeningRoutine(fromLanguageItem.speechLocaleId!, recordBtnOwner, languageSelectControl);
     // String fromWords = await listeningRoutine_speechToText(fromLanguageItem.speechLocaleId!, isMyRecordBtn);
     if(fromWords.isEmpty) {
       print("아무 말도 녹음되지 않았습니다");
@@ -314,7 +316,7 @@ class _MainScreenState extends State<MainScreen> {
       stopActingRoutine();
       return;
     }
-    TextEditingController properControllerToTranslatedWords = isMyRecordBtn ? yourTextEdit : myTextEdit;
+    TextEditingController properControllerToTranslatedWords = recordBtnOwner == ActingOwner.me ? yourTextEdit : myTextEdit;
     properControllerToTranslatedWords.text = toWords;
 
     print("-----------------------디바이스전송 ActingStatus.deviceSending------------------------");
@@ -323,7 +325,7 @@ class _MainScreenState extends State<MainScreen> {
     //speech service
     _textToSpeechControl.changeLanguage(toLanguageItem.speechLocaleId!);
     _textToSpeechControl.speak(toWords);
-    if(isMyRecordBtn)
+    if(recordBtnOwner == ActingOwner.me)
     {
       String fullMsg = _bluetoothControl.getFullMsg(toLanguageItem, toWords);
       print("내가 말했을때 디바이스표시 : $fullMsg");
@@ -341,22 +343,27 @@ class _MainScreenState extends State<MainScreen> {
     //6. finish
     stopActingRoutine();
   }
-  listeningRoutine(String speechLocaleID, bool isMyRecordBtn, languageSelectControl) async {
+  listeningRoutine(String speechLocaleID, ActingOwner recordBtnOwner, languageSelectControl) async {
     _speechRecognitionControl.transcription = '';
     _speechRecognitionControl.start(speechLocaleID);
     _speechRecognitionControl.isCompleted = false;
-    TextEditingController properControllerToTranslatedWords = isMyRecordBtn ? myTextEdit  : yourTextEdit;
+    TextEditingController properControllerToTranslatedWords = recordBtnOwner == ActingOwner.me ? myTextEdit  : yourTextEdit;
     while (true) {
       // if(!_speechToTextControl.speechToText.isListening)
       properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
       await Future.delayed(Duration(milliseconds: 1));
+      if(recordBtnOwner != _nowActingOwner)
+      {
+        print("진입 당시 acting owner 와 상황이 달라져서 listening routine 탈출.. ");
+        break;
+      }
       if(_speechRecognitionControl.isCompleted)
       {
         await Future.delayed(Duration(milliseconds: 500));
         properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
         print("_speechRecognitionControl.isListening가 false이기 때문에 listening routine 탈출..");
         print(_speechRecognitionControl.transcription);
-        onPressedAudioRecordBtn(isMyRecordBtn, languageSelectControl);
+        onPressedAudioRecordBtn(recordBtnOwner, languageSelectControl);
         break;
       }
       if (!_isAudioRecordBtnPressed) {
@@ -492,11 +499,19 @@ class _MainScreenState extends State<MainScreen> {
 
   onClickedDropdownMenuSwitchBtn()
   {
-    // var tmp = _myLanguageSelectScreen ;
-    // _myLanguageSelectScreen = _yourLanguageSelectScreen;
-    // _yourLanguageSelectScreen = tmp;
-    //
-    // notifyListeners();
+    var tmp = _languageSelectControl.nowMyLanguageItem ;
+    _languageSelectControl.nowMyLanguageItem = _languageSelectControl.nowYourLanguageItem;
+    _languageSelectControl.nowYourLanguageItem = tmp;
   }
+  Timer? autoTurnOnYourMicButtonTimer;
+  void startAutoTurnOnYourMicBtnTimer(LanguageSelectControl languageSelectControl) {
+    autoTurnOnYourMicButtonTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      // 1초마다 실행될 작업
+      if (_nowActingOwner == ActingOwner.neutral) {
 
+        // onPressedAudioRecordBtn(ActingOwner.you, languageSelectControl);
+        print("nowActingOwner is neutral");
+      }
+    });
+  }
 }
