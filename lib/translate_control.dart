@@ -24,7 +24,7 @@ class TranslateControl with ChangeNotifier
     translateByGoogleServer.initializeTranslateByGoogleServer();
     translateByPapagoServer.initializeTranslateByPapagoServer();
   }
-  Future<String?> getTranslatedWordsByTranslateTool(String inputStr, LanguageItem fromLanguageItem, LanguageItem toLanguageItem, TranslateTool translateTool) async
+  Future<String?> getTranslatedWordsByTranslateTool(String inputStr, LanguageItem fromLanguageItem, LanguageItem toLanguageItem, TranslateTool translateTool, int timeoutMilliSec) async
   {
     print("translateTool $translateTool 를 이용해 번역 시도합니다.");
     String? finalStr;
@@ -46,19 +46,19 @@ class TranslateControl with ChangeNotifier
         String sourceStr = (from != null && from!.isNotEmpty) ? from! : fromLanguageItem.langCodeGoogleServer!;
         String targetStr = (to != null && from!.isNotEmpty) ? to! : toLanguageItem.langCodeGoogleServer!;
         //해석시작
-        finalStr = await translateByPapagoServer.textTranslate(inputStr, sourceStr, targetStr);
+        finalStr = await translateByPapagoServer.textTranslate(inputStr, sourceStr, targetStr, timeoutMilliSec);
         break;
       case TranslateTool.googleServer:
         String from =  fromLanguageItem.langCodeGoogleServer!;
         String to =  toLanguageItem.langCodeGoogleServer!;
-        finalStr = await translateByGoogleServer.textTranslate(inputStr, from, to);
+        finalStr = await translateByGoogleServer.textTranslate(inputStr, from, to, timeoutMilliSec);
         break;
     }
     return (finalStr == null) ? null : finalStr;
   }
 
 
-  Future<String> translateByAvailableTranslateTools (String recognizedWords, LanguageItem fromLanguageItem, LanguageItem toLanguageItem) async{
+  Future<String?> translateByAvailableTranslateTools (String recognizedWords, LanguageItem fromLanguageItem, LanguageItem toLanguageItem, int timeoutMilliSec) async{
 
     bool isContainChina = (fromLanguageItem.translateLanguage == TranslateLanguage.chinese) || (toLanguageItem.translateLanguage == TranslateLanguage.chinese);
 
@@ -71,7 +71,7 @@ class TranslateControl with ChangeNotifier
     for(int i = 0 ; i < trToolsToUse.length ; i++)
     {
       TranslateTool translateTool = trToolsToUse[i];
-      String? response = await getTranslatedWordsByTranslateTool(recognizedWords, fromLanguageItem, toLanguageItem, translateTool);
+      String? response = await getTranslatedWordsByTranslateTool(recognizedWords, fromLanguageItem, toLanguageItem, translateTool, timeoutMilliSec);
       if(response != null && response!.isNotEmpty)
       {
         translatedWords = response!;
@@ -83,6 +83,6 @@ class TranslateControl with ChangeNotifier
     {
       return translatedWords;
     }
-    return "";
+    return null;
   }
 }

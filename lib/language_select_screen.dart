@@ -37,7 +37,7 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
     // TODO: implement initState
     for(int i = 0 ; i < languageDataList.length ; i++)
     {
-      _languageListTiles.add(languageListTile(languageDataList[i], true));
+      _languageListTiles.add(languageListTile(languageDataList[i], false));
     }
 
     // onSelectedLanguageListTile(widget.languageSelectControl.initialLanguageItem);
@@ -51,21 +51,21 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
         SizedBox(height: 70,
           child: Align(alignment : Alignment.center,
             child: Text("${isMine ? "당신" : "상대방"}의 언어를 선택해주세요",
-              style: TextStyle(fontSize: 17, color: Colors.teal[900], fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 15, color: Colors.teal[900], fontWeight: FontWeight.w600),
             )),),
         const SimpleSeparator(color: Colors.grey, height: 0, top: 10, bottom: 10),
         Align(alignment : Alignment.centerLeft,
             child: Text("선택됨",
-              style: TextStyle(fontSize: 15, color: Colors.teal[900], fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
               textAlign: TextAlign.left,
             )),
-        languageListTile(isMine ? widget.languageSelectControl.nowMyLanguageItem : widget.languageSelectControl.nowYourLanguageItem, false),
+        languageListTile(isMine ? widget.languageSelectControl.nowMyLanguageItem : widget.languageSelectControl.nowYourLanguageItem, true),
         const SimpleSeparator(color: Colors.grey, height: 0.5, top: 0, bottom: 20),
         Align(alignment : Alignment.centerLeft,
             child: SizedBox(
               height: 30,
               child: Text("전체",
-                  style: TextStyle(fontSize: 15, color: Colors.teal[900], fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
                   textAlign: TextAlign.left
               ),
             )),
@@ -81,22 +81,24 @@ class _LanguageSelectScreenState extends State<LanguageSelectScreen> {
     );
   }
 
-  Widget languageListTile(LanguageItem languageItem, bool selectable)
+  Widget languageListTile(LanguageItem languageItem, bool isSelectedLanguage)
   {
     return InkWell(
-      onTap: () => selectable ? onSelectedLanguageListTile(languageItem) : null,
+      onTap: () => onSelectedLanguageListTile(languageItem, isSelectedLanguage),
       child: ListTile(
 
-        title: Text(languageItem.menuDisplayStr!, textAlign: TextAlign.left,),
+        title: Text(languageItem.menuDisplayStr!, textAlign: TextAlign.left, style: TextStyle(fontSize: 14),),
       ),
     );
   }
-  void onSelectedLanguageListTile(LanguageItem languageItem) {
-    if (isMine) {
-
-      widget.languageSelectControl.nowMyLanguageItem = languageItem;
-    } else {
-      widget.languageSelectControl.nowYourLanguageItem = languageItem;
+  void onSelectedLanguageListTile(LanguageItem languageItem, bool isSelectedLanguage) {
+    if(!isSelectedLanguage)
+    {
+      if (isMine) {
+        widget.languageSelectControl.nowMyLanguageItem = languageItem;
+      } else {
+        widget.languageSelectControl.nowYourLanguageItem = languageItem;
+      }
     }
     Navigator.of(context).pop();
   }

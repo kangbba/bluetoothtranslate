@@ -35,10 +35,16 @@ dependencies:
   provider: ^6.0.5
   permission_handler: ^10.2.0
   google_cloud_translation: ^0.0.3
+
   flutter_blue_plus: ^1.4.0
   loading_animation_widget: ^1.2.0+4
   connectivity_wrapper: ^1.1.1
   simple_ripple_animation: ^0.0.7
+
+  speech_to_text: ^6.1.1
+
+
+
 
   flutter_tts: ^3.6.3
 
