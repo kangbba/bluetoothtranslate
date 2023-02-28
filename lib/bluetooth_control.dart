@@ -3,8 +3,10 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:bluetooth_manager/bluetooth_manager.dart';
 import 'package:bluetoothtranslate/helper/simple_ask_dialog2.dart';
 import 'package:bluetoothtranslate/helper/simple_loading_dialog.dart';
+import 'package:bluetoothtranslate/permission_controller.dart';
 import 'package:bluetoothtranslate/statics/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -141,7 +143,7 @@ class BluetoothControl with ChangeNotifier
     {
       simpleLoadingDialog(context, "블루투스를 켜는중입니다");
       try {
-        await flutterBlue.turnOn();
+        await BluetoothManager.enableBluetooth();
       } on PlatformException catch (e) {
         print("Bluetooth could not be turned on: ${e.toString()}");
         return false;

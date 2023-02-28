@@ -264,9 +264,11 @@ class _MainScreenState extends State<MainScreen> {
         print("이미 무언가 하고있습니다.");
         return;
       }
-      bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermisionGranted();
+      bool hasPermission = await PermissionController.checkIfVoiceRecognitionPermissionGranted();
       if (!hasPermission) {
-        PermissionController.showNoPermissionSnackBar(context);
+        if(mounted){
+          PermissionController.showNoPermissionSnackBar(context);
+        }
         return;
       }
       bool isInternetConnected = await ConnectivityWrapper.instance.isConnected;
@@ -451,7 +453,9 @@ class _MainScreenState extends State<MainScreen> {
   onClickedOpenDeviceSelectScreen(BluetoothControl bluetoothControl) async{
     bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
     if (!hasPermission) {
-      print("권한에 문제가있음");
+      if(mounted) {
+        PermissionController.showNoPermissionSnackBar(context);
+      }
       return;
     }
     bool bluetoothTurnOn = await bluetoothControl.isBluetoothTurnOn();
