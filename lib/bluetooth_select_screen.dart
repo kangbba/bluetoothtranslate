@@ -41,6 +41,8 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
   //   }
   // }
 
+  Widget connectedIcon =  Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.green, size: 30);
+  Widget disconnectedIcon = Image.asset('assets/icon_disconnected.png', color: Colors.grey, width: 20, height: 20,);
   bool isFirstExcuted = true;
   @override
   void initState() {
@@ -71,7 +73,32 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
                 style: TextStyle(fontSize: 15, color: Colors.teal[900], fontWeight: FontWeight.w600),
               )),),
         Align(alignment : Alignment.centerLeft,
-            child: Text("최근",
+            child: Text("connected",
+              style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
+              textAlign: TextAlign.left,
+            )),
+        FutureBuilder<List<BluetoothDevice>>(
+            future: widget.bluetoothControl.flutterBlue.connectedDevices,
+            builder: (context, snapshotDevice) {
+              return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: snapshotDevice.hasData ? snapshotDevice.data!.length : 0,
+                  itemBuilder: (context, i) {
+                    return snapshotDevice.hasData ?
+                    StreamBuilder<BluetoothDeviceState>(
+                        stream: snapshotDevice.data![i].state,
+                        builder: (context, snapshotState) {
+                          BluetoothDevice device = snapshotDevice.data![i];
+                          bool isConnected = snapshotState.hasData && snapshotState.data! == BluetoothDeviceState.connected;
+                          return deviceListTile(device, isConnected ? connectedIcon : disconnectedIcon);
+                        }
+                    ) : Container();
+                  });
+            }
+        ),
+        const SimpleSeparator(color: Colors.grey, height: 0, top: 0, bottom: 10),
+        Align(alignment : Alignment.centerLeft,
+            child: Text("bonded",
               style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
               textAlign: TextAlign.left,
             )),
@@ -88,8 +115,6 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
                         builder: (context, snapshotState) {
                           BluetoothDevice device = snapshotDevice.data![i];
                           bool isConnected = snapshotState.hasData && snapshotState.data! == BluetoothDeviceState.connected;
-                          Widget connectedIcon =  Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.green, size: 30);
-                          Widget disconnectedIcon = Image.asset('assets/icon_disconnected.png', color: Colors.grey, width: 20, height: 20,);
                           return deviceListTile(device, isConnected ? connectedIcon : disconnectedIcon);
                         }
                     ) : Container();

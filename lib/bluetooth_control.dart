@@ -30,7 +30,8 @@ class BluetoothControl extends ChangeNotifier
   }
 
   Future<BluetoothDevice?> getValidDevice () async{
-    List<BluetoothDevice> bondedDevices = await flutterBlue.bondedDevices;
+    List<BluetoothDevice> bondedDevices = await flutterBlue.connectedDevices;
+
     for(int i = 0 ; i < bondedDevices.length ; i++)
     {
   //    bondedDevices[i].id.toString() == SERVICE_UUID
