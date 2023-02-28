@@ -317,6 +317,8 @@ class _MainScreenState extends State<MainScreen> {
     print("-----------------------번역 ActingStatus.translating------------------------");
     _nowActingStatus = ActingStatus.translating;
     String? toWords = await _translateControl.translateByAvailableTranslateTools(fromWords, fromLanguageItem, toLanguageItem, 2000);
+    setState(() {
+    });
 
     if(toWords == null)
     {
@@ -343,6 +345,8 @@ class _MainScreenState extends State<MainScreen> {
 
     print("-----------------------디바이스전송 ActingStatus.deviceSending------------------------");
 
+    //5. send to device
+    _nowActingStatus = ActingStatus.deviceSending;
     BluetoothDevice? targetDevice = await _bluetoothControl.getValidDevice();
     if(targetDevice == null)
     {
@@ -357,8 +361,6 @@ class _MainScreenState extends State<MainScreen> {
       stopActingRoutine();
       return;
     }
-    //5. send to device
-    _nowActingStatus = ActingStatus.deviceSending;
     if(recordBtnOwner == ActingOwner.me)
     {
       String fullMsg = _bluetoothControl.getFullMsg(toLanguageItem, toWords);
@@ -398,7 +400,6 @@ class _MainScreenState extends State<MainScreen> {
         print("_speechRecognitionControl.isListening가 false이기 때문에 listening routine 탈출..");
         print(_speechRecognitionControl.transcription);
         onPressedAudioRecordBtn(recordBtnOwner, languageSelectControl);
-        break;
       }
       if (!_isAudioRecordBtnPressed) {
         print("마이크를 사용자가 껐기 때문에 listening routine 탈출..");
