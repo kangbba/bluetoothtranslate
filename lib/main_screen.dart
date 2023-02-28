@@ -235,6 +235,8 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                   onPressed: (){
                     onPressedAudioRecordBtn(recordBtnOwner, languageSelectControl);
+                    setState(() {
+                    });
                   },
                   child: isRecordingAndMatchWithTurn ? LoadingAnimationWidget.staggeredDotsWave(size: 33, color: Colors.white) :
                   Icon(Icons.mic, color:  Colors.white, size: 33,),
@@ -285,7 +287,6 @@ class _MainScreenState extends State<MainScreen> {
       _isAudioRecordBtnPressed = false;
       LanguageItem fromLanguageItem = isRecordBtnOwnerIsMe ? languageSelectControl.nowMyLanguageItem : languageSelectControl.nowYourLanguageItem;
       LanguageItem toLanguageItem =  isRecordBtnOwnerIsMe ? languageSelectControl.nowYourLanguageItem : languageSelectControl.nowMyLanguageItem;
-      stopActingRoutine();
     }
     setState(() {});
   }
@@ -347,7 +348,7 @@ class _MainScreenState extends State<MainScreen> {
 
     //5. send to device
     _nowActingStatus = ActingStatus.deviceSending;
-    BluetoothDevice? targetDevice = await _bluetoothControl.getValidDevice();
+    BluetoothDevice? targetDevice = _bluetoothControl.validDevice;
     if(targetDevice == null)
     {
       print("타겟디바이스가 없습니다");
@@ -408,6 +409,7 @@ class _MainScreenState extends State<MainScreen> {
       }
 
     }
+    _speechRecognitionControl.stop();
     properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
     return _speechRecognitionControl.transcription;
   }

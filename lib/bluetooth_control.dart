@@ -12,14 +12,32 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'language_select_control.dart';
 import 'language_select_screen.dart';
 
-class BluetoothControl extends ChangeNotifier
+class BluetoothControl with ChangeNotifier
 {
-
-
   bool _isScanning = false;
   Timer? _timer;
   FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   BluetoothDevice? _validDevice;
+
+  // List<BluetoothDevice> _connectedDevices = [];
+  // List<BluetoothDevice>  get connectedDevices{
+  //   return _connectedDevices;
+  // }
+  // set connectedDevices (List<BluetoothDevice> devices){
+  //   _connectedDevices = devices;
+  //   notifyListeners();
+  //   return ;
+  // }
+  //
+  // List<BluetoothDevice> _bondedDevices = [];
+  // List<BluetoothDevice>  get bondedDevices{
+  //   return _bondedDevices;
+  // }
+  // set bondedDevices (List<BluetoothDevice> devices){
+  //   _bondedDevices = devices;
+  //   notifyListeners();
+  //   return ;
+  // }
 
   BluetoothDevice? get validDevice{
     return _validDevice;
@@ -59,37 +77,37 @@ class BluetoothControl extends ChangeNotifier
   {
   }
 
-  //
-  scanRestart() async{
-    bool isBluetoothOn = await flutterBlue.isOn;
-    if(!isBluetoothOn){
-      print("블루투스 꺼져있음");
-      return null;
-    }
-    _isScanning = true;
-    await scanStop();
-    try{
-      await flutterBlue.startScan();
-    }
-    catch(e){
-      print("/////스캔도중 에러 $e");
-    }
-    finally{
-      _isScanning = false;
-    }
-  }
-  scanStop() async{
-    bool isBluetoothOn = await flutterBlue.isOn;
-    if(!isBluetoothOn){
-      print("블루투스 꺼져있음");
-      return null;
-    }
-    if(!_isScanning){
-      return;
-    }
-    await flutterBlue.stopScan();
-    _isScanning = false;
-  }
+  // //
+  // scanRestart() async{
+  //   bool isBluetoothOn = await flutterBlue.isOn;
+  //   if(!isBluetoothOn){
+  //     print("블루투스 꺼져있음");
+  //     return null;
+  //   }
+  //   _isScanning = true;
+  //   await scanStop();
+  //   try{
+  //     await flutterBlue.startScan();
+  //   }
+  //   catch(e){
+  //     print("/////스캔도중 에러 $e");
+  //   }
+  //   finally{
+  //     _isScanning = false;
+  //   }
+  // }
+  // scanStop() async{
+  //   bool isBluetoothOn = await flutterBlue.isOn;
+  //   if(!isBluetoothOn){
+  //     print("블루투스 꺼져있음");
+  //     return null;
+  //   }
+  //   if(!_isScanning){
+  //     return;
+  //   }
+  //   await flutterBlue.stopScan();
+  //   _isScanning = false;
+  // }
   // scanRestart() async{
   //   if(_isScanning){
   //     print("이미 스캔중");
@@ -234,6 +252,12 @@ class BluetoothControl extends ChangeNotifier
     _timer = Timer.periodic(Duration(milliseconds: 1000), (timer) async {
       //widget.bluetoothControl.validDevice가 없으면 connect상태인 device를 찾아서 넣는다.
       //이미있으면 ,
+
+      // connectedDevices = await flutterBlue.connectedDevices;
+      // bondedDevices = await flutterBlue.bondedDevices;
+      // print("////connectedDevices length :  ${connectedDevices.length}");
+      // print("////bondedDevices length :  ${bondedDevices.length}");
+
       BluetoothDevice? device = await getValidDevice();
       if(validDevice == null && device != null){
         print("새로운 valideDevice 등록시키겠음");
@@ -242,6 +266,7 @@ class BluetoothControl extends ChangeNotifier
       {
         print("기존 validDevice 해제하겠음");
       }
+      print("///validDevice : ${validDevice?.name} 현재 device : ${device?.name}");
       validDevice = device;
     });
   }

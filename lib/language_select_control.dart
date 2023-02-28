@@ -58,17 +58,6 @@ class LanguageSelectControl with ChangeNotifier{
   }
 
 
-
-
-
-
-
-
-
-
-
-
-
   List<LanguageItem> languageDataList = [
     LanguageItem(translateLanguage: TranslateLanguage.english, menuDisplayStr: "English", speechLocaleId: "en_US", langCodeGoogleServer: "en", langCodePapagoServer: "en", langCodeArduino: 1),
     LanguageItem(translateLanguage: TranslateLanguage.spanish, menuDisplayStr: "Spanish", speechLocaleId: "es_ES", langCodeGoogleServer: "es", langCodePapagoServer: "es", langCodeArduino: 2),
