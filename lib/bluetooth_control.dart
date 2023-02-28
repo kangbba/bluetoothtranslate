@@ -7,6 +7,7 @@ import 'package:bluetoothtranslate/helper/simple_ask_dialog2.dart';
 import 'package:bluetoothtranslate/helper/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/statics/uuid.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'language_select_control.dart';
 import 'language_select_screen.dart';
@@ -30,6 +31,11 @@ class BluetoothControl extends ChangeNotifier
   }
 
   Future<BluetoothDevice?> getValidDevice () async{
+    bool isBluetoothOn = await flutterBlue.isOn;
+    if(!isBluetoothOn){
+      print("블루투스 꺼져있습니다.");
+      return null;
+    }
     List<BluetoothDevice> bondedDevices = await flutterBlue.connectedDevices;
 
     for(int i = 0 ; i < bondedDevices.length ; i++)
@@ -53,8 +59,13 @@ class BluetoothControl extends ChangeNotifier
   {
   }
 
-
+  //
   scanRestart() async{
+    bool isBluetoothOn = await flutterBlue.isOn;
+    if(!isBluetoothOn){
+      print("블루투스 꺼져있음");
+      return null;
+    }
     _isScanning = true;
     await scanStop();
     try{
@@ -68,13 +79,38 @@ class BluetoothControl extends ChangeNotifier
     }
   }
   scanStop() async{
+    bool isBluetoothOn = await flutterBlue.isOn;
+    if(!isBluetoothOn){
+      print("블루투스 꺼져있음");
+      return null;
+    }
     if(!_isScanning){
       return;
     }
     await flutterBlue.stopScan();
     _isScanning = false;
   }
-
+  // scanRestart() async{
+  //   if(_isScanning){
+  //     print("이미 스캔중");
+  //     return;
+  //   }
+  //   _isScanning = true;
+  //   bool isBluetoothOn = await flutterBlue.isOn;
+  //   if(!isBluetoothOn){
+  //     print("블루투스 꺼져있음");
+  //     return null;
+  //   }
+  //   // 스캔 시작
+  //   flutterBlue.scan(timeout: Duration(seconds: 5)).listen((scanResult) {
+  //     // 장치를 찾았을 때 실행할 코드
+  //     print('Found device ${scanResult.device.name} (${scanResult.device.id})');
+  //     notifyListeners();
+  //   }, onDone: () {
+  //     _isScanning = false;
+  //     print('Scan completed.');
+  //   });
+  // }
   Future<bool> isBluetoothTurnOn() async
   {
     BluetoothState bluetoothState = await flutterBlue.state.first;
@@ -86,7 +122,13 @@ class BluetoothControl extends ChangeNotifier
     if(bluetoothResponse != null && bluetoothResponse)
     {
       simpleLoadingDialog(context, "블루투스를 켜는중입니다");
-      await flutterBlue.turnOn();
+      try {
+        await flutterBlue.turnOn();
+      } on PlatformException catch (e) {
+        print("Bluetooth could not be turned on: ${e.toString()}");
+        return false;
+        // handle error
+      }
       await Future.delayed(Duration(seconds: 3)); // 2초 동안 기다립니다.
       Navigator.of(context).pop();
       return true;

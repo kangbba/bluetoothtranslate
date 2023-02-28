@@ -161,7 +161,7 @@ class _MainScreenState extends State<MainScreen> {
         actions: [bluetoothDeviceSelectBtn(context)],
         backgroundColor: Colors.blueGrey[100],
       shadowColor: Colors.transparent,
-      toolbarHeight: 40,
+      toolbarHeight: 60,
 
       );
   }

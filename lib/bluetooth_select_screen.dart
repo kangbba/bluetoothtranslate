@@ -41,6 +41,7 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
   //   }
   // }
 
+  Timer? _timer;
   Widget connectedIcon =  Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.green, size: 30);
   Widget disconnectedIcon = Image.asset('assets/icon_disconnected.png', color: Colors.grey, width: 20, height: 20,);
   bool isFirstExcuted = true;
@@ -55,6 +56,7 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
       widget.bluetoothControl.scanRestart();
       isFirstExcuted = false;
     }
+    startBluetoothDetectTimer();
     super.initState();
   }
   @override
@@ -72,111 +74,123 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
               child: Text("디바이스를 선택해주세요",
                 style: TextStyle(fontSize: 15, color: Colors.teal[900], fontWeight: FontWeight.w600),
               )),),
-        Align(alignment : Alignment.centerLeft,
-            child: Text("connected",
-              style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
-              textAlign: TextAlign.left,
-            )),
-        FutureBuilder<List<BluetoothDevice>>(
-            future: widget.bluetoothControl.flutterBlue.connectedDevices,
-            builder: (context, snapshotDevice) {
-              return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: snapshotDevice.hasData ? snapshotDevice.data!.length : 0,
-                  itemBuilder: (context, i) {
-                    return snapshotDevice.hasData ?
-                    StreamBuilder<BluetoothDeviceState>(
-                        stream: snapshotDevice.data![i].state,
-                        builder: (context, snapshotState) {
-                          BluetoothDevice device = snapshotDevice.data![i];
-                          bool isConnected = snapshotState.hasData && snapshotState.data! == BluetoothDeviceState.connected;
-                          return deviceListTile(device, isConnected ? connectedIcon : disconnectedIcon);
-                        }
-                    ) : Container();
-                  });
-            }
-        ),
-        const SimpleSeparator(color: Colors.grey, height: 0, top: 0, bottom: 10),
-        Align(alignment : Alignment.centerLeft,
-            child: Text("bonded",
-              style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
-              textAlign: TextAlign.left,
-            )),
-        FutureBuilder<List<BluetoothDevice>>(
-            future: widget.bluetoothControl.flutterBlue.bondedDevices,
-            builder: (context, snapshotDevice) {
-              return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: snapshotDevice.hasData ? snapshotDevice.data!.length : 0,
-                  itemBuilder: (context, i) {
-                    return snapshotDevice.hasData ?
-                    StreamBuilder<BluetoothDeviceState>(
-                        stream: snapshotDevice.data![i].state,
-                        builder: (context, snapshotState) {
-                          BluetoothDevice device = snapshotDevice.data![i];
-                          bool isConnected = snapshotState.hasData && snapshotState.data! == BluetoothDeviceState.connected;
-                          return deviceListTile(device, isConnected ? connectedIcon : disconnectedIcon);
-                        }
-                    ) : Container();
-                  });
-            }
-        ),
-        const SimpleSeparator(color: Colors.grey, height: 0, top: 0, bottom: 10),
-
-        Align(alignment : Alignment.centerLeft,
-            child: SizedBox(
-              height: 17,
-              child: Text("전체",
-                  style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
-                  textAlign: TextAlign.left
-              ),
-            )),
         Expanded(
-          child: StreamBuilder<List<ScanResult>>(
-              stream: widget.bluetoothControl.flutterBlue.scanResults,
-              builder: (context, snapshotScanResult) {
-                if (!snapshotScanResult.hasData) {
-                  return Container();
-                }
-                List<ScanResult> filteredList = snapshotScanResult.data!.where((result) =>
-                result.rssi > -60).toList();
-
-                filteredList.sort((a, b) {
-                  if (a.device.name.isNotEmpty && b.device.name.isEmpty) {
-                    return -1;
-                  } else if (a.device.name.isEmpty && b.device.name.isNotEmpty) {
-                    return 1;
-                  } else {
-                    return b.rssi.compareTo(a.rssi);
+          child: Column(
+            children: [
+              FutureBuilder<List<BluetoothDevice>>(
+                  future: widget.bluetoothControl.flutterBlue.connectedDevices,
+                  builder: (context, snapshotDevice) {
+                    return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: snapshotDevice.hasData ? snapshotDevice.data!.length : 0,
+                        itemBuilder: (context, i) {
+                          return snapshotDevice.hasData ?
+                          Column(
+                            children: [
+                              Align(alignment : Alignment.centerLeft,
+                                  child: Text("최근",
+                                    style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
+                                    textAlign: TextAlign.left,
+                                  )),
+                              StreamBuilder<BluetoothDeviceState>(
+                                  stream: snapshotDevice.data![i].state,
+                                  builder: (context, snapshotState) {
+                                    BluetoothDevice device = snapshotDevice.data![i];
+                                    bool isConnected = snapshotState.hasData && snapshotState.data! == BluetoothDeviceState.connected;
+                                    return deviceListTile(device, isConnected ? connectedIcon : disconnectedIcon);
+                                  }
+                              ),
+                            ],
+                          ) : Container(height: 60,);
+                        });
                   }
-                });
-                return ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: filteredList.length,
-                    itemBuilder: (context, i) {
-                      return deviceListTile(filteredList[i].device, getRssiIcon(filteredList[i].rssi));
+              ),
+              const SimpleSeparator(color: Colors.grey, height: 0, top: 0, bottom: 10),
+              // Align(alignment : Alignment.centerLeft,
+              //     child: Text("bonded",
+              //       style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
+              //       textAlign: TextAlign.left,
+              //     )),
+              // FutureBuilder<List<BluetoothDevice>>(
+              //     future: widget.bluetoothControl.flutterBlue.bondedDevices,
+              //     builder: (context, snapshotDevice) {
+              //       return ListView.builder(
+              //           shrinkWrap: true,
+              //           itemCount: snapshotDevice.hasData ? snapshotDevice.data!.length : 0,
+              //           itemBuilder: (context, i) {
+              //             return snapshotDevice.hasData ?
+              //             StreamBuilder<BluetoothDeviceState>(
+              //                 stream: snapshotDevice.data![i].state,
+              //                 builder: (context, snapshotState) {
+              //                   BluetoothDevice device = snapshotDevice.data![i];
+              //                   bool isConnected = snapshotState.hasData && snapshotState.data! == BluetoothDeviceState.connected;
+              //                   return deviceListTile(device, isConnected ? connectedIcon : disconnectedIcon);
+              //                 }
+              //             ) : Container();
+              //           });
+              //     }
+              // ),
+              // const SimpleSeparator(color: Colors.grey, height: 0, top: 0, bottom: 10),
+
+              Align(alignment : Alignment.centerLeft,
+                  child: SizedBox(
+                    height: 17,
+                    child: Text("전체",
+                        style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
+                        textAlign: TextAlign.left
+                    ),
+                  )),
+              Expanded(
+                child: StreamBuilder<List<ScanResult>>(
+                    stream: widget.bluetoothControl.flutterBlue.scanResults,
+                    builder: (context, snapshotScanResult) {
+                      if (!snapshotScanResult.hasData) {
+                        return Container();
+                      }
+                      List<ScanResult> filteredList = snapshotScanResult.data!.where((result) =>
+                      result.rssi > -60).toList();
+
+                      filteredList.sort((a, b) {
+                        if (a.device.name.isNotEmpty && b.device.name.isEmpty) {
+                          return -1;
+                        } else if (a.device.name.isEmpty && b.device.name.isNotEmpty) {
+                          return 1;
+                        } else {
+                          return b.rssi.compareTo(a.rssi);
+                        }
+                      });
+                      return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: filteredList.length,
+                          itemBuilder: (context, i) {
+                            return deviceListTile(filteredList[i].device, getRssiIcon(filteredList[i].rssi));
+                          }
+                      );
                     }
-                );
-              }
+                ),
+              ),
+            ],
           ),
         ),
         SizedBox(
-          height: 100,
+          width: 40,
+          height: 40,
           child: InkWell(
-            onTap : () async
-            {
-              widget.bluetoothControl.scanRestart();
-            },
-            child: Icon(CupertinoIcons.refresh_thick, size: 30,)),
-        )
+              onTap : () async
+              {
+                widget.bluetoothControl.scanRestart();
+              },
+              child: Icon(CupertinoIcons.refresh_thick, size: 30,)),
+        ),
+        SizedBox(height: 20,)
       ],
     );
   }
   Widget getRssiIcon(int rssi) {
-    if (rssi >= - 30) {
+    if (rssi >= - 40) {
       return Icon(Icons.signal_cellular_alt_sharp);
     }
-    else if (rssi >= -45) {
+    else if (rssi >= -50) {
       return Icon(Icons.signal_cellular_alt_2_bar_sharp);
     }
     else if (rssi >= -60) {
@@ -227,6 +241,17 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
   }
 
   onSelectedDeviceListTile(BluetoothDevice device) async{
+
+    bool isBluetoothOn = await widget.bluetoothControl.flutterBlue.isOn;
+
+    if(!isBluetoothOn){
+      bool resp = await widget.bluetoothControl.bluetoothTurnOnDialog(context);
+      if(!resp){
+        print("블루투스 허용 거절했습니다");
+        return;
+      }
+    }
+
     BluetoothDeviceState state = await device.state.first;
     print("////////연결상태 : $state");
     if(state == BluetoothDeviceState.connected)
@@ -251,6 +276,9 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
         Navigator.of(context).pop();
         await simpleConfirmDialog(context, "기기연결에 실패했습니다", "OK");
       }
+      simpleLoadingDialog(context, ("기기 탐색중."));
+      await Future.delayed(Duration(seconds: 2));
+      Navigator.of(context).pop();
       widget.bluetoothControl.scanRestart();
       setState(() {
 
@@ -258,6 +286,35 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
     }
     else{
       print("/////무언가하는중");
+    }
+  }
+
+
+  void startBluetoothDetectTimer() {
+    // 만약 타이머가 이미 실행 중이면 중복 호출을 막습니다.
+    if (_timer != null && _timer!.isActive) {
+      return;
+    }
+
+    // 1초마다 callback 함수를 호출하는 타이머를 생성하고 시작합니다.
+    _timer = Timer.periodic(Duration(milliseconds: 1000), (timer) async {
+      bool isOn = await widget.bluetoothControl.flutterBlue.isOn;
+      if(!isOn){
+        stopTimer();
+        bool resp = false;
+        if(mounted) {
+          resp = await widget.bluetoothControl.bluetoothTurnOnDialog(context);
+        }
+        startBluetoothDetectTimer();
+      }
+    });
+  }
+
+
+  void stopTimer() {
+    // 타이머가 실행 중이면 중지합니다.
+    if (_timer != null && _timer!.isActive) {
+      _timer!.cancel();
     }
   }
 
