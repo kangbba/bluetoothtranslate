@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:bluetoothtranslate/bluetooth_control.dart';
 import 'package:bluetoothtranslate/bluetooth_select_screen.dart';
+import 'package:bluetoothtranslate/helper/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/language_select_control.dart';
 import 'package:bluetoothtranslate/language_select_screen.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
@@ -41,8 +42,9 @@ enum ActingStatus
   translating,
   deviceSending
 }
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
 
+  bool isBeforeResume = true;
   bool _isAudioRecordBtnPressed = false;
   bool _isMicNotTouched = true;
 
@@ -68,13 +70,26 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    print("새로시작");
+    isBeforeResume = true;
     _languageSelectControl.initializeLanguageSelectControl();
     _bluetoothControl.initializeBluetoothControl();
     _speechRecognitionControl.activateSpeechRecognizer();
     _textToSpeechControl.initTextToSpeech();
     _translateControl.initializeTranslateControl();
-
-
+    WidgetsBinding.instance.addObserver(this);
+  } @override
+  void didChangeAppLifecycleState(AppLifecycleState state){
+    if (state == AppLifecycleState.paused) {
+      // 앱이 일시정지될 때의 처리
+      // 예: 재생 중인 비디오를 일시 정지
+      print("앱이 일시중지됨");
+      isBeforeResume = true;
+    }
+    else if(state == AppLifecycleState.resumed){
+      print("앱이 재개됨");
+      isBeforeResume = true;
+    }
   }
   @override
   void dispose() {
@@ -251,6 +266,8 @@ class _MainScreenState extends State<MainScreen> {
 
   // isRecording ? LoadingAnimationWidget.beat(size: 50, color: Colors.grey) : Container(width: 36, height: 36,),
   onPressedAudioRecordBtn(ActingOwner recordBtnOwner, LanguageSelectControl languageSelectControl) async {
+
+
     _isMicNotTouched = false;
     if(_nowActingOwner != ActingOwner.neutral &&  _nowActingOwner != recordBtnOwner)
     {
@@ -273,10 +290,22 @@ class _MainScreenState extends State<MainScreen> {
       }
       bool isInternetConnected = await ConnectivityWrapper.instance.isConnected;
       if (!isInternetConnected) {
-        await simpleConfirmDialog(context, "인터넷 연결이 필요합니다!", "확인");
+        await simpleConfirmDialog(context, "인터넷 연결이 필요합니다!", "", "확인");
         //todo 인터넷연결안됨 처리.
         return;
       }
+
+      if(isBeforeResume){
+        _bluetoothControl.validDevice = await _bluetoothControl.getValidDevice(true);
+        if(_bluetoothControl.validDevice != null){
+          simpleLoadingDialog(context, "기기 재연결중");
+          await _bluetoothControl.disconnectTry(_bluetoothControl.validDevice!, 2000);
+          await _bluetoothControl.connectTry(_bluetoothControl.validDevice!, 3000);
+          Navigator.of(context).pop();
+        }
+        isBeforeResume = false;
+      }
+
       print("${isRecordBtnOwnerIsMe? "내쪽" : "상대쪽"} 마이크 켬");
       _isAudioRecordBtnPressed = true;
       LanguageItem fromLanguageItem = isRecordBtnOwnerIsMe ? languageSelectControl.nowMyLanguageItem : languageSelectControl.nowYourLanguageItem;
@@ -328,7 +357,7 @@ class _MainScreenState extends State<MainScreen> {
       print("번역 기능에서 오류가 발생한듯 합니다");
       stopActingRoutine();
 
-      await simpleConfirmDialog(context, "서버가 불안정합니다. 잠시후 시도해보세요", "OK");
+      await simpleConfirmDialog(context, "서버가 불안정합니다. 잠시후 시도해보세요", "", "OK");
       myTextEdit.text ='';
       yourTextEdit.text ='';
 
@@ -343,8 +372,14 @@ class _MainScreenState extends State<MainScreen> {
     properControllerToTranslatedWords.text = toWords;
 
     //speech service
-    _textToSpeechControl.changeLanguage(toLanguageItem.speechLocaleId!);
-    _textToSpeechControl.speak(toWords);
+    try{
+
+      _textToSpeechControl.changeLanguage(toLanguageItem.speechLocaleId!);
+      _textToSpeechControl.speak(toWords);
+    }
+    catch(e){
+      print(e);
+    }
 
     print("-----------------------디바이스전송 ActingStatus.deviceSending------------------------");
 
@@ -383,6 +418,7 @@ class _MainScreenState extends State<MainScreen> {
     stopActingRoutine();
   }
   listeningRoutine(String speechLocaleID, ActingOwner recordBtnOwner, languageSelectControl) async {
+
     _speechRecognitionControl.transcription = '';
     _speechRecognitionControl.start(speechLocaleID);
     _speechRecognitionControl.isCompleted = false;
@@ -445,11 +481,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-
-
-
-
-
   onClickedOpenDeviceSelectScreen(BluetoothControl bluetoothControl) async{
     bool hasPermission = await PermissionController.checkIfBluetoothPermissionsGranted();
     if (!hasPermission) {
@@ -458,14 +489,10 @@ class _MainScreenState extends State<MainScreen> {
       }
       return;
     }
-    bool bluetoothTurnOn = await bluetoothControl.isBluetoothTurnOn();
-    if(!bluetoothTurnOn)
-    {
-      bool response = await bluetoothControl.bluetoothTurnOnDialog(context);
-      if(!response)
-      {
-        return;
-      }
+    bool bluetoothOn = await bluetoothControl.flutterBlue.isOn;
+    if(!bluetoothOn){
+      bool resp = await bluetoothControl.checkIfBluetoothOn(context);
+      return;
     }
     showDialog(
         context: context,

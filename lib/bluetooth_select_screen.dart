@@ -76,33 +76,26 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
         Expanded(
           child: Column(
             children: [
-              FutureBuilder<List<BluetoothDevice>>(
-                  future: widget.bluetoothControl.flutterBlue.connectedDevices,
+              Align(alignment : Alignment.centerLeft,
+                  child: Text("최근",
+                    style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.left,
+                  )),
+              FutureBuilder<BluetoothDevice?>(
+                  future: widget.bluetoothControl.getValidDevice(null),
                   builder: (context, snapshotDevice) {
-                    return ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: snapshotDevice.hasData ? snapshotDevice.data!.length : 0,
-                        itemBuilder: (context, i) {
-                          return snapshotDevice.hasData ?
-                          Column(
-                            children: [
-                              Align(alignment : Alignment.centerLeft,
-                                  child: Text("최근",
-                                    style: TextStyle(fontSize: 14, color: Colors.teal[900], fontWeight: FontWeight.w600),
-                                    textAlign: TextAlign.left,
-                                  )),
-                              StreamBuilder<BluetoothDeviceState>(
-                                  stream: snapshotDevice.data![i].state,
-                                  initialData: BluetoothDeviceState.disconnected,
-                                  builder: (context, snapshotState) {
-                                    BluetoothDevice device = snapshotDevice.data![i];
-                                    bool isConnected = snapshotState.hasData && snapshotState.data! == BluetoothDeviceState.connected;
-                                    return deviceListTile(device, isConnected ? connectedIcon : disconnectedIcon);
-                                  }
-                              ),
-                            ],
-                          ) : Container(height: 60,);
-                        });
+                    return snapshotDevice.hasData ? Column(
+                      children: [
+                        StreamBuilder<BluetoothDeviceState>(
+                            stream: snapshotDevice.data!.state,
+                            initialData: BluetoothDeviceState.disconnected,
+                            builder: (context, snapshotState) {
+                              bool isConnected = snapshotState.hasData && snapshotState.data! == BluetoothDeviceState.connected;
+                              return deviceListTile(snapshotDevice.data!, isConnected ? connectedIcon : disconnectedIcon);
+                            }
+                        ),
+                      ],
+                    ) : Container();
                   }
               ),
               const SimpleSeparator(color: Colors.grey, height: 0, top: 0, bottom: 10),
@@ -203,15 +196,10 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
   {
     return InkWell(
       onTap: () async {
-        bool isOn = await widget.bluetoothControl.flutterBlue.isOn;
-        if(!isOn){
-          if(!mounted) {
-            return;
-          }
-          bool resp = await widget.bluetoothControl.bluetoothTurnOnDialog(context);
-          if(!resp){
-            return;
-          }
+        bool bluetoothOn = await widget.bluetoothControl.flutterBlue.isOn;
+        if(!bluetoothOn){
+          bool resp = await widget.bluetoothControl.checkIfBluetoothOn(context);
+          return;
         }
         await onSelectedDeviceListTile(device);
       },
@@ -229,46 +217,17 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
       )
     );
   }
-  connectTry(BluetoothDevice device, int timeOutMilliSec) async
-  {
-    try{
-      await device.connect(timeout: Duration(milliseconds: timeOutMilliSec));
-      return true;
-    }
-    catch(e){
-      print("////////에러발생 $e");
-      return false;
-    }
-    finally{
-    }
-  }
-  disconnectTry(BluetoothDevice device, int timeOutMilliSec) async {
-    try {
-      await device.disconnect().timeout(Duration(milliseconds: timeOutMilliSec));
-      return true;
-    } catch(e) {
-      print("////////에러발생 $e");
-      return false;
-    }
-  }
 
   onSelectedDeviceListTile(BluetoothDevice device) async{
-
-    startScan(false);
-    bool isBluetoothOn = await widget.bluetoothControl.flutterBlue.isOn;
-
-    if(!isBluetoothOn){
-      if(!mounted)
-      {
-       return;
-      }
-      bool resp = await widget.bluetoothControl.bluetoothTurnOnDialog(context);
-      if(!resp){
-        print("블루투스 허용 거절했습니다");
-        return;
-      }
+    bool bluetoothOn = await widget.bluetoothControl.flutterBlue.isOn;
+    if(!bluetoothOn){
+      bool resp = await widget.bluetoothControl.checkIfBluetoothOn(context);
+      return;
     }
 
+    print("DEVICE NAME ${device.name}");
+    startScan(false);
+    
     BluetoothDeviceState state = await device.state.first;
     print("////////연결상태 : $state");
     if(state == BluetoothDeviceState.connected)
@@ -278,28 +237,31 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
     else if(state == BluetoothDeviceState.disconnected) {
       print("////////연결시도중");
 
-      if(mounted) {
-        simpleLoadingDialog(context, "기기에 연결중입니다.");
+      simpleLoadingDialog(context, "기기에 연결중입니다.");
+      bool responseDisconnect = await widget.bluetoothControl.disconnectTry(device, 3000);
+      bool success = await  widget.bluetoothControl.connectTry(device, 4500);
+      if(!success) {
+        ScanResult? scanResultToConnect = await widget.bluetoothControl
+            .getScanResult(device.name);
+
+        BluetoothDevice? foundDevice = scanResultToConnect != null
+            ? scanResultToConnect!.device
+            : null;
+
+        bool responseDisconnect = foundDevice != null ? await widget
+            .bluetoothControl.disconnectTry(foundDevice, 3000) : false;
+        success = foundDevice != null ? await widget.bluetoothControl.connectTry(foundDevice, 4500) : false;
       }
-      print("////기존연결 해제중");
-      bool responseDisconnect = await disconnectTry(device, 3000);
-      print("////기존연결 해제 성공 $responseDisconnect");
-      bool response = await connectTry(device, 4500);
-      if(mounted) {
-        Navigator.of(context).pop();  // 기기에 연결중 로딩 없애기.
+      else {
       }
-      if (response) { // 기기연결 성공시
+      Navigator.of(context).pop();  // 기기에 연결중 로딩 없애기.
+
+      if (success) { // 기기연결 성공시
       }
-      else { // 기기연결 실패시
-        if(mounted) {
-          await simpleConfirmDialog(context, "기기연결에 실패했습니다", "OK");
-        }
-        startScan(true);
+      else {
+        await simpleConfirmDialog(context, "기기연결에 실패했습니다", "디바이스 전원을 확인하세요", "OK");
       }
-      // simpleLoadingDialog(context, ("기기 탐색중."));
-      // await Future.delayed(Duration(seconds: 2));
-      // Navigator.of(context).pop();
-      // widget.bluetoothControl.scanRestart();
+      startScan(true);
       setState(() {
 
       });
@@ -320,15 +282,10 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
           return InkWell(
               child: const Icon(CupertinoIcons.refresh_circled_solid, size: 45, color: Colors.blueGrey,),
               onTap: () async{
-                bool isOn = await widget.bluetoothControl.flutterBlue.isOn;
-                if(!isOn){
-                  if(!mounted) {
-                    return;
-                  }
-                  bool resp = await widget.bluetoothControl.bluetoothTurnOnDialog(context);
-                  if(!resp){
-                    return;
-                  }
+                bool bluetoothOn = await widget.bluetoothControl.flutterBlue.isOn;
+                if(!bluetoothOn){
+                  bool resp = await widget.bluetoothControl.checkIfBluetoothOn(context);
+                  return;
                 }
                 startScan(false);
                 startScan(true);

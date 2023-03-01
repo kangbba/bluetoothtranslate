@@ -3,7 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:bluetooth_manager/bluetooth_manager.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:bluetoothtranslate/helper/simple_ask_dialog2.dart';
 import 'package:bluetoothtranslate/helper/simple_loading_dialog.dart';
 import 'package:bluetoothtranslate/permission_controller.dart';
@@ -11,6 +11,7 @@ import 'package:bluetoothtranslate/statics/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'language_select_control.dart';
 import 'language_select_screen.dart';
 
@@ -50,22 +51,35 @@ class BluetoothControl with ChangeNotifier
     notifyListeners();
   }
 
-  Future<BluetoothDevice?> getValidDevice () async{
+  Future<BluetoothDevice?> getValidDevice (bool? targetConnect) async{
     bool isBluetoothOn = await flutterBlue.isOn;
     if(!isBluetoothOn){
       print("블루투스 꺼져있습니다.");
       return null;
     }
-    List<BluetoothDevice> bondedDevices = await flutterBlue.connectedDevices;
-
-    for(int i = 0 ; i < bondedDevices.length ; i++)
+    List<BluetoothDevice> connectedDevices = await flutterBlue.connectedDevices;
+    List<BluetoothDevice> bondedDevices = await flutterBlue.bondedDevices;
+    List<BluetoothDevice> nominatedDevices = [];
+    nominatedDevices.addAll(connectedDevices);
+    nominatedDevices.addAll(bondedDevices);
+    for(int i = 0 ; i < nominatedDevices.length ; i++)
     {
   //    bondedDevices[i].id.toString() == SERVICE_UUID
-      if(true)
+      if(nominatedDevices[i].name == "banGawer")
       {
-        BluetoothDeviceState state = await bondedDevices[i].state.first;
-        if(state == BluetoothDeviceState.connected) {
-          return bondedDevices[i];
+        print("banGawer connectivity : ${targetConnect} 로 발견되고있음");
+        BluetoothDeviceState state = await nominatedDevices[i].state.first;
+        if(targetConnect == null)
+        {
+          return nominatedDevices[i];
+        }
+        else{
+          if(targetConnect && state == BluetoothDeviceState.connected) {
+            return nominatedDevices[i];
+          }
+          if(!targetConnect && state == BluetoothDeviceState.disconnected) {
+            return nominatedDevices[i];
+          }
         }
       }
     }
@@ -136,26 +150,27 @@ class BluetoothControl with ChangeNotifier
     BluetoothState bluetoothState = await flutterBlue.state.first;
     return bluetoothState == BluetoothState.on;
   }
-  Future<bool> bluetoothTurnOnDialog(BuildContext context) async
-  {
-    bool? bluetoothResponse = await simpleAskDialog2(context, "Bluetooth 기능이 필요합니다.", "허용", "거부");
-    if(bluetoothResponse != null && bluetoothResponse)
-    {
-      simpleLoadingDialog(context, "블루투스를 켜는중입니다");
-      try {
-        await BluetoothManager.enableBluetooth();
-      } on PlatformException catch (e) {
-        print("Bluetooth could not be turned on: ${e.toString()}");
-        return false;
-        // handle error
+  checkIfBluetoothOn(BuildContext context) async {
+    bool? bluetoothResponse = await simpleAskDialog2(
+      context,
+      "Bluetooth 기능이 필요합니다.",
+      "허용",
+      "거부",
+    );
+    if (bluetoothResponse != null && bluetoothResponse) {
+      // Bluetooth 설정 화면으로 이동
+      await AppSettings.openBluetoothSettings();
+    }
+  }
+
+  Future<ScanResult?> getScanResult(String deviceName) async{
+    List<ScanResult> results = await flutterBlue.scanResults.first;
+    for(int i = 0 ; i <results.length ; i ++){
+      if(results[i].device.name == deviceName){
+        return results[i];
       }
-      await Future.delayed(Duration(seconds: 3)); // 2초 동안 기다립니다.
-      Navigator.of(context).pop();
-      return true;
     }
-    else{
-      return false;
-    }
+    return null;
   }
   Future<BluetoothService>? findService(BluetoothDevice device, String serviceUUID) async {
     List<BluetoothService> services = await device.discoverServices();
@@ -204,7 +219,7 @@ class BluetoothControl with ChangeNotifier
 
   sendMessageToSelectedDevice(BluetoothDevice device, String fullMsgToSend) async{
     try {
-      await sendMessage(device, fullMsgToSend);
+      await sendMessage(device!, fullMsgToSend);
 
     } catch (e) {
       throw Exception("메세지 전송 실패 이유 : $e");
@@ -260,7 +275,7 @@ class BluetoothControl with ChangeNotifier
       // print("////connectedDevices length :  ${connectedDevices.length}");
       // print("////bondedDevices length :  ${bondedDevices.length}");
 
-      BluetoothDevice? device = await getValidDevice();
+      BluetoothDevice? device = await getValidDevice(true);
       if(validDevice == null && device != null){
         print("새로운 valideDevice 등록시키겠음");
       }
@@ -273,6 +288,37 @@ class BluetoothControl with ChangeNotifier
     });
   }
 
+  connectTry(BluetoothDevice device, int timeOutMilliSec) async
+  {
+    try{
+      await device.connect(timeout: Duration(milliseconds: timeOutMilliSec)).onError((error, stackTrace){
+        print("////////에러발생");
+        print(error);
+        print(stackTrace);
+        return false;
+      });
+      return true;
+    }
+    catch(e){
+      print("////////에러발생 $e");
+      return false;
+    }
+    finally{
+    }
+  }
+
+  disconnectTry(BluetoothDevice device, int timeOutMilliSec) async {
+    try {
+      print("////기존연결 해제중");
+      await device.disconnect().timeout(Duration(milliseconds: timeOutMilliSec));
+      print("////기존연결 해제 성공");
+      return true;
+    } catch(e) {
+      print("////////기존연결 해제 실패 $e");
+      return false;
+    }
+  }
+
 
   void stopTimer() {
     // 타이머가 실행 중이면 중지합니다.
@@ -280,4 +326,22 @@ class BluetoothControl with ChangeNotifier
       _timer!.cancel();
     }
   }
+
+
+  final keepAliveInterval = const Duration(seconds: 10); // 연결을 유지할 주기
+  void keepAlive(BluetoothDevice device) async {
+    while (true) {
+      if (await device.state.first == BluetoothDeviceState.connected) {
+        await device.requestMtu(512); // MTU 크기 설정
+        await device.discoverServices(); // BLE 서비스 검색
+
+        // BLE 서비스를 이용하여 데이터 전송
+
+        await Future.delayed(keepAliveInterval);
+      } else {
+        break;
+      }
+    }
+  }
+
 }

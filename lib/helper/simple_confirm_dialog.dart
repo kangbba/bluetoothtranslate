@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-Future<bool?> simpleConfirmDialog(BuildContext context, String message, String positiveStr) async {
+Future<bool?> simpleConfirmDialog(BuildContext context, String message1, String message2, String positiveStr) async {
   return await showDialog<bool>(
     context: context,
     builder: (BuildContext context) {
@@ -7,7 +7,18 @@ Future<bool?> simpleConfirmDialog(BuildContext context, String message, String p
         contentTextStyle: TextStyle(fontSize: 14, color: Colors.black87),
         actionsAlignment: MainAxisAlignment.spaceEvenly,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Text(message, style: TextStyle(fontSize: 15), textAlign: TextAlign.center,),
+        content: SizedBox(
+          width: 100,
+          height: 60,
+          child: Column(
+            children: [
+              Container(height: 10,),
+              Text(message1, style: TextStyle(fontSize: 15), textAlign: TextAlign.center,),
+              Container(height: 10,),
+              Text(message2, style: TextStyle(fontSize: 11), textAlign: TextAlign.center,),
+            ],
+          ),
+        ),
         actions: <Widget>[
           InkWell(
               onTap: (){
