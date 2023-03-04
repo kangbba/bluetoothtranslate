@@ -67,7 +67,7 @@ class BluetoothControl with ChangeNotifier
   //    bondedDevices[i].id.toString() == SERVICE_UUID
       if(nominatedDevices[i].name == "banGawer")
       {
-        print("banGawer connectivity : ${targetConnect} 로 발견되고있음");
+     //   print("banGawer connectivity : ${targetConnect} 로 발견되고있음");
         BluetoothDeviceState state = await nominatedDevices[i].state.first;
         if(targetConnect == null)
         {

@@ -21,6 +21,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_ripple_animation/simple_ripple_animation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:volume_controller/volume_controller.dart';
 
 class MainScreen extends StatefulWidget {
 
@@ -65,6 +66,7 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
   Color yourMainColor = Colors.blueGrey[800]!;
   Color myMainColor = Colors.cyan[800]!;
 
+  final volumeController = VolumeController();
 
 
   @override
@@ -77,6 +79,7 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
     _speechRecognitionControl.activateSpeechRecognizer();
     _textToSpeechControl.initTextToSpeech();
     _translateControl.initializeTranslateControl();
+
     WidgetsBinding.instance.addObserver(this);
   } @override
   void didChangeAppLifecycleState(AppLifecycleState state){
@@ -417,16 +420,19 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
     //6. finish
     stopActingRoutine();
   }
-  listeningRoutine(String speechLocaleID, ActingOwner recordBtnOwner, languageSelectControl) async {
 
+  Future<void> setSystemNotificationVolume(int targetVolume) async {
+  }
+  listeningRoutine(String speechLocaleID, ActingOwner recordBtnOwner, languageSelectControl) async {
     _speechRecognitionControl.transcription = '';
+    _speechRecognitionControl.activateSpeechRecognizer();
     _speechRecognitionControl.start(speechLocaleID);
-    _speechRecognitionControl.isCompleted = false;
+
     TextEditingController properControllerToTranslatedWords = recordBtnOwner == ActingOwner.me ? myTextEdit  : yourTextEdit;
     while (true) {
       // if(!_speechToTextControl.speechToText.isListening)
+      await Future.delayed(Duration(milliseconds: 0));
       properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
-      await Future.delayed(Duration(milliseconds: 1));
       if(recordBtnOwner != _nowActingOwner)
       {
         print("진입 당시 acting owner 와 상황이 달라져서 listening routine 탈출.. ");
@@ -434,25 +440,26 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
       }
       if(_speechRecognitionControl.isCompleted)
       {
-        await Future.delayed(Duration(milliseconds: 500));
-        properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
+        for(int i = 0 ; i < 5 ; i ++){
+          await Future.delayed(Duration(milliseconds: 100));
+          properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
+        }
         print("_speechRecognitionControl.isListening가 false이기 때문에 listening routine 탈출..");
         print(_speechRecognitionControl.transcription);
         onPressedAudioRecordBtn(recordBtnOwner, languageSelectControl);
       }
       if (!_isAudioRecordBtnPressed) {
         print("마이크를 사용자가 껐기 때문에 listening routine 탈출..");
-        _speechRecognitionControl.stop();
         break;
       }
-
     }
     _speechRecognitionControl.stop();
+    _speechRecognitionControl.activateSpeechRecognizer();
     properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
+
+
     return _speechRecognitionControl.transcription;
   }
-
-
 
 
   //TODO : 블루투스 관련 기능
