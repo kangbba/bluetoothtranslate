@@ -31,10 +31,6 @@ dependencies:
   shared_preferences: ^2.0.6
   flutter_speech: ^2.0.0
   volume_controller: ^2.0.6
-  android_app_usage:
-    git:
-      url: git://github.com/Pyozer/android_app_usage.git
-      ref: master
 
 
 
