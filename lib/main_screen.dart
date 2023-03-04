@@ -290,7 +290,7 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
       }
       bool isInternetConnected = await ConnectivityWrapper.instance.isConnected;
       if (!isInternetConnected) {
-        await simpleConfirmDialog(context, "인터넷 연결이 필요합니다!", "", "확인");
+        await simpleConfirmDialog1(context, "인터넷 연결이 필요합니다!", "확인");
         //todo 인터넷연결안됨 처리.
         return;
       }
@@ -357,7 +357,7 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
       print("번역 기능에서 오류가 발생한듯 합니다");
       stopActingRoutine();
 
-      await simpleConfirmDialog(context, "서버가 불안정합니다. 잠시후 시도해보세요", "", "OK");
+      await simpleConfirmDialog1(context, "서버가 불안정합니다. 잠시후 시도해보세요", "OK");
       myTextEdit.text ='';
       yourTextEdit.text ='';
 

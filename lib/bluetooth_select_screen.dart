@@ -259,7 +259,7 @@ class _BluetoothSelectScreenState extends State<BluetoothSelectScreen> {
       if (success) { // 기기연결 성공시
       }
       else {
-        await simpleConfirmDialog(context, "기기연결에 실패했습니다", "디바이스 전원을 확인하세요", "OK");
+        await simpleConfirmDialog2(context, "기기연결에 실패했습니다", "디바이스 전원을 확인하세요", "OK");
       }
       startScan(true);
       setState(() {
