@@ -15,13 +15,14 @@ import 'package:bluetoothtranslate/apis/text_to_speech_control.dart';
 import 'package:bluetoothtranslate/translate_control.dart';
 import 'package:connectivity_wrapper/connectivity_wrapper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:lecle_volume_flutter/lecle_volume_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_ripple_animation/simple_ripple_animation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:volume_controller/volume_controller.dart';
 
 class MainScreen extends StatefulWidget {
 
@@ -66,13 +67,14 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
   Color yourMainColor = Colors.blueGrey[800]!;
   Color myMainColor = Colors.cyan[800]!;
 
-  final volumeController = VolumeController();
-
+  AudioManager audioManager = AudioManager.streamSystem;
 
   @override
   void initState() {
     super.initState();
     print("새로시작");
+    initAudioStreamType();
+
     isBeforeResume = true;
     _languageSelectControl.initializeLanguageSelectControl();
     _bluetoothControl.initializeBluetoothControl();
@@ -270,7 +272,6 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
   // isRecording ? LoadingAnimationWidget.beat(size: 50, color: Colors.grey) : Container(width: 36, height: 36,),
   onPressedAudioRecordBtn(ActingOwner recordBtnOwner, LanguageSelectControl languageSelectControl) async {
 
-
     _isMicNotTouched = false;
     if(_nowActingOwner != ActingOwner.neutral &&  _nowActingOwner != recordBtnOwner)
     {
@@ -308,7 +309,6 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
         }
         isBeforeResume = false;
       }
-
       print("${isRecordBtnOwnerIsMe? "내쪽" : "상대쪽"} 마이크 켬");
       _isAudioRecordBtnPressed = true;
       LanguageItem fromLanguageItem = isRecordBtnOwnerIsMe ? languageSelectControl.nowMyLanguageItem : languageSelectControl.nowYourLanguageItem;
@@ -316,6 +316,7 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
       startActingRoutine(recordBtnOwner, fromLanguageItem, toLanguageItem, languageSelectControl);
     }
     else{
+     // _playRecordEnd();
       print("${isRecordBtnOwnerIsMe? "내쪽" : "상대쪽"} 마이크 끔");
 
       _isAudioRecordBtnPressed = false;
@@ -326,6 +327,7 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
   }
   stopActingRoutine() async{
     print("-----------------------루틴끝 stopActingRoutine------------------------");
+    setVol(androidVol: 9, iOSVol: 0.0, showVolumeUI: false);
     _nowActingStatus = ActingStatus.none;
     _nowActingOwner = ActingOwner.neutral;
   }
@@ -341,6 +343,7 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
     //2. speech to original text
     print("-----------------------음성녹음 ActingStatus.recording------------------------");
     _nowActingStatus = ActingStatus.recording;
+
     String fromWords = await listeningRoutine(fromLanguageItem.speechLocaleId!, recordBtnOwner, languageSelectControl);
     // String fromWords = await listeningRoutine_speechToText(fromLanguageItem.speechLocaleId!, isMyRecordBtn);
     if(fromWords.isEmpty) {
@@ -419,20 +422,23 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
     }
     //6. finish
     stopActingRoutine();
-  }
 
-  Future<void> setSystemNotificationVolume(int targetVolume) async {
+    // await Future.delayed(Duration(milliseconds: 1000));
+    // onPressedAudioRecordBtn(recordBtnOwner == ActingOwner.me ? ActingOwner.you : ActingOwner.me, languageSelectControl);
   }
   listeningRoutine(String speechLocaleID, ActingOwner recordBtnOwner, languageSelectControl) async {
+
+    setVol(androidVol: 0, iOSVol: 0.0, showVolumeUI: false);
     _speechRecognitionControl.transcription = '';
     _speechRecognitionControl.activateSpeechRecognizer();
     _speechRecognitionControl.start(speechLocaleID);
-
     TextEditingController properControllerToTranslatedWords = recordBtnOwner == ActingOwner.me ? myTextEdit  : yourTextEdit;
     while (true) {
       // if(!_speechToTextControl.speechToText.isListening)
       await Future.delayed(Duration(milliseconds: 0));
-      properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
+      if(_speechRecognitionControl.transcription.isNotEmpty) {
+        properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
+      }
       if(recordBtnOwner != _nowActingOwner)
       {
         print("진입 당시 acting owner 와 상황이 달라져서 listening routine 탈출.. ");
@@ -457,9 +463,9 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
     _speechRecognitionControl.activateSpeechRecognizer();
     properControllerToTranslatedWords.text = _speechRecognitionControl.transcription;
 
-
     return _speechRecognitionControl.transcription;
   }
+
 
 
   //TODO : 블루투스 관련 기능
@@ -579,4 +585,16 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
     _languageSelectControl.nowMyLanguageItem = _languageSelectControl.nowYourLanguageItem;
     _languageSelectControl.nowYourLanguageItem = tmp;
   }
+
+  Future<void> initAudioStreamType() async {
+    await Volume.initAudioStream(AudioManager.streamNotification);
+  }
+  setVol({int androidVol = 0, double iOSVol = 0.0, bool showVolumeUI = true}) async {
+    await Volume.setVol(
+      androidVol: androidVol,
+      iOSVol: iOSVol,
+      showVolumeUI: showVolumeUI,
+    );
+  }
+
 }
