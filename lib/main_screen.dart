@@ -558,6 +558,9 @@ class _MainScreenState extends State<MainScreen>  with WidgetsBindingObserver {
       builder: (context, languageSelectControl, child) {
         return InkWell(
           onTap: () {
+            if(_nowRecordBtnOwner != ActingOwner.neutral){
+              onPressedAudioRecordBtn(_nowRecordBtnOwner, languageSelectControl);
+            }
             late LanguageSelectScreen myLanguageSelectScreen =
             LanguageSelectScreen(
               isMine: true,

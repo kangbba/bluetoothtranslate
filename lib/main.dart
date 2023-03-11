@@ -19,6 +19,7 @@ class MyApp extends StatelessWidget {
       // theme: ThemeData(
       //   fontFamily: 'NotoSans-Regular',
       // ),
+      debugShowCheckedModeBanner: false,
       home: MainScreen(),
     );
   }
